@@ -6,14 +6,14 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'home_screen.dart';
 import 'login_screen.dart';
 
-class SplashScreen extends StatefulWidget {
-  const SplashScreen({super.key});
+class SplashScreenFixed extends StatefulWidget {
+  const SplashScreenFixed({super.key});
 
   @override
-  State<SplashScreen> createState() => _SplashScreenState();
+  State<SplashScreenFixed> createState() => _SplashScreenFixedState();
 }
 
-class _SplashScreenState extends State<SplashScreen> {
+class _SplashScreenFixedState extends State<SplashScreenFixed> {
   double _progress = 0.0;
   Timer? _timer;
   bool _seenLogin = false;
@@ -23,7 +23,6 @@ class _SplashScreenState extends State<SplashScreen> {
   void initState() {
     super.initState();
     _loadPrefs();
-    // Simulate loading and animate progress
     _timer = Timer.periodic(const Duration(milliseconds: 80), (timer) {
       setState(() {
         _progress += 0.03;
@@ -93,7 +92,9 @@ class _SplashScreenState extends State<SplashScreen> {
                   ),
                 ),
               ),
+
               const SizedBox(height: 18),
+
               Container(
                 height: 260,
                 decoration: BoxDecoration(
@@ -114,7 +115,9 @@ class _SplashScreenState extends State<SplashScreen> {
                   ),
                 ),
               ),
+
               const SizedBox(height: 18),
+
               Container(
                 height: 320,
                 padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 22),
@@ -144,6 +147,7 @@ class _SplashScreenState extends State<SplashScreen> {
                   ],
                 ),
               ),
+
               const SizedBox(height: 12),
             ],
           ),
