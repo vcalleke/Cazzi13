@@ -27,8 +27,8 @@ class _LoginScreenState extends State<LoginScreen> {
       context: context0,
       barrierDismissible: false,
       builder: (ctx) {
-        // Start a progress timer to close the dialog and continue
-        Future.delayed(const Duration(milliseconds: 1400), () {
+        // Start a short progress timer to close the dialog and continue
+        Future.delayed(const Duration(milliseconds: 700), () {
           if (mounted) Navigator.of(ctx).pop();
         });
         return Dialog(
@@ -135,6 +135,8 @@ class _LoginScreenState extends State<LoginScreen> {
                         width: double.infinity,
                         child: ElevatedButton(
                           style: ElevatedButton.styleFrom(
+                            elevation: 8,
+                            shadowColor: Colors.black54,
                             padding: const EdgeInsets.symmetric(vertical: 14),
                             backgroundColor: Colors.black87,
                             textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),

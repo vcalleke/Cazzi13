@@ -12,4 +12,10 @@ final List<Game> games = [
     title: 'Roulette',
     description: 'Place your bets on the wheel.',
   ),
+  Game(
+    id: 'ace_race',
+    title: 'Ace Race',
+    description: 'Race to the finish with the ace.',
+  ),
 ];
+

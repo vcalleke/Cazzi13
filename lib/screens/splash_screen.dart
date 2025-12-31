@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -23,14 +24,13 @@ class _SplashScreenState extends State<SplashScreen> {
   void initState() {
     super.initState();
     _loadPrefs();
-    // Simulate loading and animate progress
     _timer = Timer.periodic(const Duration(milliseconds: 80), (timer) {
       setState(() {
-        _progress += 0.03;
+        _progress += 0.06; // slightly faster
         if (_progress >= 1.0) {
           _progress = 1.0;
           _timer?.cancel();
-          Future.delayed(const Duration(milliseconds: 500), () {
+          Future.delayed(const Duration(milliseconds: 300), () {
             if (!mounted) return;
             if (_seenLogin) {
               Navigator.of(context).pushReplacement(
@@ -68,6 +68,9 @@ class _SplashScreenState extends State<SplashScreen> {
   Widget build(BuildContext context) {
     final bg = const Color(0xFFBFBFBF);
     final lavender = const Color(0xFFEADCF7);
+    final screenH = MediaQuery.of(context).size.height;
+    final iconBlockH = (screenH * 0.22).clamp(120.0, 260.0) as double;
+    final infoCardH = (screenH * 0.36).clamp(160.0, 360.0) as double;
 
     return Scaffold(
       backgroundColor: bg,
@@ -93,31 +96,37 @@ class _SplashScreenState extends State<SplashScreen> {
                   ),
                 ),
               ),
-              const SizedBox(height: 18),
+
+              const SizedBox(height: 16),
+
+              // Icon block
               Container(
-                height: 260,
+                height: iconBlockH,
                 decoration: BoxDecoration(
                   color: Colors.grey[350],
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Center(
                   child: Container(
-                    width: 140,
-                    height: 140,
+                    width: iconBlockH * 0.55,
+                    height: iconBlockH * 0.55,
                     decoration: BoxDecoration(
                       color: Colors.grey[300],
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: const Center(
-                      child: Icon(Icons.casino, size: 92, color: Colors.black87),
+                      child: Icon(Icons.casino, size: 72, color: Colors.black87),
                     ),
                   ),
                 ),
               ),
-              const SizedBox(height: 18),
+
+              const SizedBox(height: 16),
+
+              // Info card with progress
               Container(
-                height: 320,
-                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 22),
+                height: infoCardH,
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 18),
                 decoration: BoxDecoration(
                   color: bg,
                   borderRadius: BorderRadius.circular(18),
@@ -127,23 +136,24 @@ class _SplashScreenState extends State<SplashScreen> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      _username.isEmpty ? 'Welcome back _USERNAME' : 'Welcome back $_username',
+                      _username.isEmpty ? 'Welcome back' : 'Welcome back $_username',
                       style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                     ),
-                    const SizedBox(height: 18),
+                    const SizedBox(height: 12),
                     SizedBox(
-                      width: 120,
-                      height: 120,
+                      width: (infoCardH * 0.35).clamp(80.0, 140.0) as double,
+                      height: (infoCardH * 0.35).clamp(80.0, 140.0) as double,
                       child: CustomPaint(
                         painter: _RingPainter(progress: _progress, lavender: lavender),
                         child: const Center(),
                       ),
                     ),
-                    const SizedBox(height: 18),
+                    const SizedBox(height: 12),
                     const Text('Shuffling cards and counting ships...', style: TextStyle(fontWeight: FontWeight.w600)),
                   ],
                 ),
               ),
+
               const SizedBox(height: 12),
             ],
           ),
@@ -184,8 +194,8 @@ class _RingPainter extends CustomPainter {
       ..strokeWidth = 16
       ..strokeCap = StrokeCap.round;
 
-    final startAngle = -3.14 / 2; // start at top
-    final sweep = 2 * 3.141592653589793 * progress;
+    final startAngle = -math.pi / 2; // start at top
+    final sweep = 2 * math.pi * progress;
 
     // draw lavender arc for progress
     canvas.drawArc(Rect.fromCircle(center: center, radius: radius), startAngle,
@@ -193,7 +203,7 @@ class _RingPainter extends CustomPainter {
 
     // draw a small black accent at the end of the arc (if progress > 0)
     if (progress > 0.02) {
-      final accentSweep = 2 * 3.141592653589793 * (0.06); // small segment
+      final accentSweep = 2 * math.pi * (0.06); // small segment
       final accentStart = startAngle + sweep - accentSweep;
       canvas.drawArc(Rect.fromCircle(center: center, radius: radius), accentStart,
           accentSweep, false, blackPaint);

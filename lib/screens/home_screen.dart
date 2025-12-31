@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../data/games.dart';
 import 'game_screen.dart';
@@ -14,6 +15,31 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int balance = 1000; // initial chips/credits
+  String _username = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUsername();
+  }
+
+  Future<void> _loadUsername() async {
+    final prefs = await SharedPreferences.getInstance();
+    final name = prefs.getString('username') ?? '';
+    final key = 'balance_${name.isEmpty ? 'guest' : name}';
+    final stored = prefs.getInt(key);
+    if (!mounted) return;
+    setState(() {
+      _username = name;
+      if (stored != null) balance = stored;
+    });
+  }
+
+  Future<void> _saveBalance() async {
+    final prefs = await SharedPreferences.getInstance();
+    final key = 'balance_${_username.isEmpty ? 'guest' : _username}';
+    await prefs.setInt(key, balance);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -44,7 +70,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     // Username text left
                     Expanded(
                       child: Text(
-                        '_Username',
+                        _username.isEmpty ? 'Player' : _username,
                         style: const TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.w700,
@@ -152,45 +178,55 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                             child: Row(
                               children: [
-                                // Title on left
+                                // Title on left with emoji
                                 Expanded(
                                   child: Text(
-                                    g.title.toUpperCase(),
+                                    '${g.id == 'slots' ? '🎰' : g.id == 'roulette' ? '🎡' : g.id == 'ace_race' ? '🂡' : '🎯'} ${g.title.toUpperCase()}',
                                     style: const TextStyle(
-                                      fontSize: 18,
+                                      fontSize: 22,
                                       fontWeight: FontWeight.w800,
                                       color: Colors.black,
                                     ),
                                   ),
                                 ),
 
-                                // Right-side small button label
-                                TextButton(
+                                // Right-side small button label (elevated for tactile feel)
+                                ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                    elevation: 6,
+                                    shadowColor: Colors.black45,
+                                    backgroundColor: Colors.white,
+                                    foregroundColor: Colors.black,
+                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                  ),
                                   onPressed: () async {
                                     if (g.id == 'slots') {
-                                      final res = await Navigator.of(context)
-                                          .push<int?>(
-                                            MaterialPageRoute(
-                                              builder: (_) => SlotsScreen(
-                                                game: g,
-                                                startBalance: balance,
-                                              ),
-                                            ),
-                                          );
-                                      if (res != null)
+                                      final res = await Navigator.of(context).push<int?>(
+                                        MaterialPageRoute(
+                                          builder: (_) => SlotsScreen(
+                                            game: g,
+                                            startBalance: balance,
+                                          ),
+                                        ),
+                                      );
+                                      if (res != null) {
                                         setState(() => balance = res);
+                                        _saveBalance();
+                                      }
                                     } else if (g.id == 'roulette') {
-                                      final res = await Navigator.of(context)
-                                          .push<int?>(
-                                            MaterialPageRoute(
-                                              builder: (_) => RouletteScreen(
-                                                game: g,
-                                                startBalance: balance,
-                                              ),
-                                            ),
-                                          );
-                                      if (res != null)
+                                      final res = await Navigator.of(context).push<int?>(
+                                        MaterialPageRoute(
+                                          builder: (_) => RouletteScreen(
+                                            game: g,
+                                            startBalance: balance,
+                                          ),
+                                        ),
+                                      );
+                                      if (res != null) {
                                         setState(() => balance = res);
+                                        _saveBalance();
+                                      }
                                     } else {
                                       Navigator.of(context).push(
                                         MaterialPageRoute(
@@ -199,13 +235,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                       );
                                     }
                                   },
-                                  child: const Text(
-                                    '(Button)',
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      color: Colors.black,
-                                    ),
-                                  ),
+                                  child: const Text('PLAY', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
                                 ),
                               ],
                             ),

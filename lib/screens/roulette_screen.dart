@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/game.dart';
 
@@ -21,6 +22,7 @@ class RouletteScreen extends StatefulWidget {
 class _RouletteScreenState extends State<RouletteScreen>
     with SingleTickerProviderStateMixin {
   late int balance;
+  String _username = '';
   final _rnd = Random();
 
   // Wheel
@@ -38,10 +40,13 @@ class _RouletteScreenState extends State<RouletteScreen>
   void initState() {
     super.initState();
     balance = widget.startBalance;
+    _loadUsername();
     _controller = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 3200),
     );
+    
+
     _controller.addListener(() {
       if (_animation != null) setState(() => _rotation = _animation!.value);
     });
@@ -54,6 +59,24 @@ class _RouletteScreenState extends State<RouletteScreen>
   void dispose() {
     _controller.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadUsername() async {
+    final prefs = await SharedPreferences.getInstance();
+    final name = prefs.getString('username') ?? '';
+    if (!mounted) return;
+    final key = 'balance_${name.isEmpty ? 'guest' : name}';
+    final stored = prefs.getInt(key);
+    setState(() {
+      _username = name;
+      if (stored != null) balance = stored;
+    });
+  }
+
+  Future<void> _saveBalance() async {
+    final prefs = await SharedPreferences.getInstance();
+    final key = 'balance_${_username.isEmpty ? 'guest' : _username}';
+    await prefs.setInt(key, balance);
   }
 
   void _onSpinEnd() {
@@ -70,6 +93,8 @@ class _RouletteScreenState extends State<RouletteScreen>
       _rotation = _rotation % (2 * pi);
       balance += delta;
     });
+    // persist updated balance
+    _saveBalance();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('Result: ${landed + 1} ($landedColor) — $msg')),
     );
@@ -129,10 +154,10 @@ class _RouletteScreenState extends State<RouletteScreen>
                   ),
                   child: Row(
                     children: [
-                      const Expanded(
+                      Expanded(
                         child: Text(
-                          '_Username',
-                          style: TextStyle(
+                          _username.isEmpty ? 'Player' : _username,
+                          style: const TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.w700,
                             color: Colors.black,
@@ -268,19 +293,15 @@ class _RouletteScreenState extends State<RouletteScreen>
                       ElevatedButton(
                         onPressed: _spinning ? null : _spin,
                         style: ElevatedButton.styleFrom(
+                          elevation: 10,
+                          shadowColor: Colors.black45,
                           backgroundColor: chipYellow,
                           foregroundColor: Colors.black,
-                          padding: const EdgeInsets.symmetric(
-                            vertical: 12,
-                            horizontal: 40,
-                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 40),
                         ),
                         child: Text(
                           _spinning ? 'Spinning...' : 'SPIN',
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700,
-                          ),
+                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
                         ),
                       ),
                       const SizedBox(height: 8),

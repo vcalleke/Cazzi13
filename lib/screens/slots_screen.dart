@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/game.dart';
 
@@ -20,6 +21,7 @@ class SlotsScreen extends StatefulWidget {
 
 class _SlotsScreenState extends State<SlotsScreen> {
   late int balance;
+  String _username = '';
   final Random _rnd = Random();
   final List<String> _symbols = ['🍒', '🍋', '7️⃣', '🍊', '⭐'];
   List<String> reels = ['', '', ''];
@@ -30,6 +32,19 @@ class _SlotsScreenState extends State<SlotsScreen> {
     super.initState();
     balance = widget.startBalance;
     reels = List.generate(3, (_) => _symbols[_rnd.nextInt(_symbols.length)]);
+    _loadUsername();
+  }
+
+  Future<void> _loadUsername() async {
+    final prefs = await SharedPreferences.getInstance();
+    final name = prefs.getString('username') ?? '';
+    if (!mounted) return;
+    final key = 'balance_${name.isEmpty ? 'guest' : name}';
+    final stored = prefs.getInt(key);
+    setState(() {
+      _username = name;
+      if (stored != null) balance = stored;
+    });
   }
 
   Future<void> _spin() async {
@@ -66,6 +81,13 @@ class _SlotsScreenState extends State<SlotsScreen> {
       balance += delta;
       spinning = false;
     });
+
+    // persist balance for this player
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final key = 'balance_${_username.isEmpty ? 'guest' : _username}';
+      await prefs.setInt(key, balance);
+    } catch (_) {}
 
     ScaffoldMessenger.of(
       context,
@@ -104,10 +126,10 @@ class _SlotsScreenState extends State<SlotsScreen> {
                   ),
                   child: Row(
                     children: [
-                      const Expanded(
+                      Expanded(
                         child: Text(
-                          '_Username',
-                          style: TextStyle(
+                          _username.isEmpty ? 'Player' : _username,
+                          style: const TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.w700,
                             color: Colors.black,
@@ -190,18 +212,16 @@ class _SlotsScreenState extends State<SlotsScreen> {
 
                       ElevatedButton(
                         onPressed: spinning ? null : _spin,
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                            vertical: 12.0,
-                            horizontal: 20,
-                          ),
-                          child: Text(
-                            spinning ? 'Spinning...' : 'SPIN',
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
+                        style: ElevatedButton.styleFrom(
+                          elevation: 10,
+                          shadowColor: Colors.black45,
+                          backgroundColor: Colors.black87,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+                        ),
+                        child: Text(
+                          spinning ? 'Spinning...' : 'SPIN',
+                          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
                         ),
                       ),
                     ],
