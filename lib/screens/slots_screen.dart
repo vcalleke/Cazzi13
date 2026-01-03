@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/game.dart';
+import 'payment_screen.dart';
 
 class SlotsScreen extends StatefulWidget {
   final Game game;
@@ -136,33 +137,51 @@ class _SlotsScreenState extends State<SlotsScreen> {
                           ),
                         ),
                       ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 8,
-                        ),
-                        decoration: BoxDecoration(
-                          color: chipYellow,
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Text(
-                              'Chips',
-                              style: TextStyle(
-                                fontWeight: FontWeight.w700,
-                                color: Colors.black,
+                      GestureDetector(
+                        onTap: () async {
+                          final result = await Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (context) => PaymentScreen(
+                                currentBalance: balance,
+                                username: _username,
                               ),
                             ),
-                            Text(
-                              '$balance',
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w600,
-                                color: Colors.black,
+                          );
+                          if (result != null) {
+                            setState(() => balance = result);
+                            final prefs = await SharedPreferences.getInstance();
+                            final key = 'balance_${_username.isEmpty ? 'guest' : _username}';
+                            await prefs.setInt(key, balance);
+                          }
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
+                          decoration: BoxDecoration(
+                            color: chipYellow,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Text(
+                                'Chips',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.black,
+                                ),
                               ),
-                            ),
-                          ],
+                              Text(
+                                '$balance',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.black,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ],

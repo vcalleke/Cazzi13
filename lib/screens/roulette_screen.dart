@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/game.dart';
+import 'payment_screen.dart';
 
 class RouletteScreen extends StatefulWidget {
   final Game game;
@@ -48,9 +49,8 @@ class _RouletteScreenState extends State<RouletteScreen>
     _loadUsername();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 3200),
+      duration: const Duration(milliseconds: 12000),
     );
-    
 
     _controller.addListener(() {
       if (_animation != null) setState(() => _rotation = _animation!.value);
@@ -101,101 +101,82 @@ class _RouletteScreenState extends State<RouletteScreen>
         case 'color':
           if (bet.value == landedColor) {
             winnings += bet.amount * 2;
-            hits.add('kleur ${_colorLabel(bet.value)} (+${bet.amount * 2})');
+            hits.add('Kleur ${_colorLabel(landedColor)}');
           }
-          break;
         case 'parity':
           if (bet.value == landedParity) {
             winnings += bet.amount * 2;
-            hits.add('even/oneven ${_parityLabel(bet.value)} (+${bet.amount * 2})');
+            hits.add('Even/Oneven ${_parityLabel(landedParity)}');
           }
-          break;
         case 'number':
-          final target = int.tryParse(bet.value) ?? -1;
-          if (target == landedNumber) {
-            winnings += bet.amount * 36; // 35:1 + stake
-            hits.add('nummer $target (+${bet.amount * 36})');
+          if (int.parse(bet.value) == landedNumber) {
+            winnings += bet.amount * 36;
+            hits.add('Nummer $landedNumber');
           }
-          break;
       }
     }
 
     final delta = winnings - baseLoss;
-    final msg = hits.isEmpty
-        ? 'Verlies $baseLoss chips'
-        : 'Raak ${hits.join(' & ')} +$winnings, netto ${delta >= 0 ? '+' : ''}$delta';
-
     setState(() {
-      _spinning = false;
-      _rotation = _rotation % (2 * pi);
       balance += delta;
+      _spinning = false;
     });
-    // persist updated balance
     _saveBalance();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          'Resultaat: $landedNumber (${_colorLabel(landedColor)}, ${_parityLabel(landedParity)}) — $msg',
+
+    final message = delta >= 0
+        ? 'Je wint ${delta} chips! ${hits.isNotEmpty ? hits.join(", ") : ""}'
+        : 'Je verliest ${delta.abs()} chips!';
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          duration: const Duration(seconds: 3),
         ),
-      ),
-    );
+      );
+    }
   }
 
   void _spin() {
-    if (_spinning) return;
     if (_bets.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Voeg minstens één bet toe.')),
+        const SnackBar(content: Text('Je moet minstens 1 bet doen!')),
       );
       return;
     }
 
-    final needed = _bets.fold<int>(0, (sum, b) => sum + b.amount);
-    if (balance < needed) {
+    final totalBet = _bets.fold<int>(0, (sum, b) => sum + b.amount);
+    if (totalBet > balance) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Onvoldoende chips: inzet $needed, balans $balance')),
+        const SnackBar(content: Text('Je hebt niet genoeg chips!')),
       );
       return;
     }
 
-    final chosen = _rnd.nextInt(_segments);
     setState(() {
       _spinning = true;
-      _targetIndex = chosen;
+      _targetIndex = _rnd.nextInt(_segments);
     });
 
-    final segAngle = 2 * pi / _segments;
-    final targetCenter = (chosen + 0.5) * segAngle;
-    final rotations = 5 + _rnd.nextInt(3); // 5..7
-    final desired = -targetCenter + rotations * 2 * pi;
+    _animation = Tween<double>(begin: 0, end: (2 * pi * 5) + (_targetIndex! * (2 * pi / _segments))).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic),
+    );
 
-    _animation = Tween<double>(
-      begin: _rotation,
-      end: _rotation + desired,
-    ).animate(CurvedAnimation(parent: _controller, curve: Curves.decelerate));
-    _controller.reset();
-    _controller.forward();
+    _controller.forward(from: 0);
   }
-
-  String _colorForIndex(int index) => (index % 2 == 0) ? 'red' : 'black';
-
-  String _parityForIndex(int index) => ((index + 1) % 2 == 0) ? 'even' : 'odd';
-
-  String _colorLabel(String color) => color == 'red' ? 'Rood' : 'Zwart';
-
-  String _parityLabel(String parity) => parity == 'even' ? 'Even' : 'Oneven';
 
   void _addBet() {
     final amount = int.tryParse(_amountController.text.trim()) ?? 0;
-    final numberInput = _numberController.text.trim();
     if (amount <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Voer een inzetbedrag > 0 in.')),
+        const SnackBar(content: Text('Het inzet bedrag moet groter zijn dan 0.')),
       );
       return;
     }
 
-    // Determine bet kind priority: number text > color selection > parity selection
+    final numberInput = _numberController.text.trim();
+
+    // Priority: number > color > parity
     if (numberInput.isNotEmpty) {
       final n = int.tryParse(numberInput);
       if (n == null || n < 1 || n > 36) {
@@ -207,6 +188,8 @@ class _RouletteScreenState extends State<RouletteScreen>
       setState(() {
         _bets.add(_Bet(kind: 'number', value: '$n', amount: amount));
         _numberController.clear();
+        _amountController.clear();
+        _amountController.text = '10';
       });
       return;
     }
@@ -214,6 +197,8 @@ class _RouletteScreenState extends State<RouletteScreen>
     if (_betColor != null) {
       setState(() {
         _bets.add(_Bet(kind: 'color', value: _betColor!, amount: amount));
+        _amountController.clear();
+        _amountController.text = '10';
       });
       return;
     }
@@ -221,12 +206,14 @@ class _RouletteScreenState extends State<RouletteScreen>
     if (_betParity != null) {
       setState(() {
         _bets.add(_Bet(kind: 'parity', value: _betParity!, amount: amount));
+        _amountController.clear();
+        _amountController.text = '10';
       });
       return;
     }
 
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Kies een kleur, even/oneven of nummer.')),
+      const SnackBar(content: Text('Voer een nummer in (1-36) of kies een kleur/even/oneven.')),
     );
   }
 
@@ -249,6 +236,30 @@ class _RouletteScreenState extends State<RouletteScreen>
     }
   }
 
+  String _describeBetShort(_Bet bet) {
+    switch (bet.kind) {
+      case 'color':
+        return '${_colorLabel(bet.value)} - ${bet.amount}';
+      case 'parity':
+        return '${_parityLabel(bet.value)} - ${bet.amount}';
+      case 'number':
+        return '${bet.value} - ${bet.amount}';
+      default:
+        return '${bet.value} - ${bet.amount}';
+    }
+  }
+
+  String _colorForIndex(int index) {
+    return (index % 2 == 0) ? 'red' : 'black';
+  }
+
+  String _parityForIndex(int index) {
+    return ((index + 1) % 2 == 0) ? 'even' : 'odd';
+  }
+
+  String _colorLabel(String color) => color == 'red' ? 'Rood' : 'Zwart';
+  String _parityLabel(String parity) => parity == 'even' ? 'Even' : 'Oneven';
+
   @override
   Widget build(BuildContext context) {
     const headerBg = Color(0xFFBDBDB0);
@@ -269,275 +280,294 @@ class _RouletteScreenState extends State<RouletteScreen>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Header with balance
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 12,
-                  ),
-                  decoration: BoxDecoration(
-                    color: headerBg,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          _username.isEmpty ? 'Player' : _username,
-                          style: const TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.w700,
-                            color: Colors.black,
+                // Header with balance (hidden during spin)
+                if (!_spinning) ...[
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 12,
+                    ),
+                    decoration: BoxDecoration(
+                      color: headerBg,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            _username.isEmpty ? 'Player' : _username,
+                            style: const TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.black,
+                            ),
                           ),
                         ),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 8,
-                        ),
-                        decoration: BoxDecoration(
-                          color: chipYellow,
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Text(
-                              'Chips',
-                              style: TextStyle(
-                                fontWeight: FontWeight.w700,
-                                color: Colors.black,
-                              ),
-                            ),
-                            Text(
-                              '$balance',
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w600,
-                                color: Colors.black,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: 16),
-
-                // Wheel area (scrollable so controls remain tappable on small screens)
-                Expanded(
-                  child: SingleChildScrollView(
-                    child: Container(
-                      padding: const EdgeInsets.all(18),
-                      decoration: BoxDecoration(
-                        color: cardBg,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Column(
-                        children: [
-                          Text(
-                            widget.game.description,
-                            style: const TextStyle(color: Colors.black),
-                            textAlign: TextAlign.center,
-                          ),
-                          if (_spinning) ...[
-                            const SizedBox(height: 18),
-                            Container(
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: SizedBox(
-                                height: 200,
-                                child: Center(
-                                  child: Stack(
-                                    alignment: Alignment.center,
-                                    children: [
-                                      Transform.rotate(
-                                        angle: _rotation,
-                                        child: CustomPaint(
-                                          size: const Size(180, 180),
-                                          painter: _WheelPainter(
-                                            segments: _segments,
-                                          ),
-                                        ),
-                                      ),
-                                      Positioned(
-                                        top: 6,
-                                        child: CustomPaint(
-                                          size: const Size(24, 24),
-                                          painter: _PointerPainter(),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
+                        GestureDetector(
+                          onTap: () async {
+                            final result = await Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (context) => PaymentScreen(
+                                  currentBalance: balance,
+                                  username: _username,
                                 ),
                               ),
+                            );
+                            if (result != null) {
+                              setState(() => balance = result);
+                              final prefs = await SharedPreferences.getInstance();
+                              final key = 'balance_${_username.isEmpty ? 'guest' : _username}';
+                              await prefs.setInt(key, balance);
+                            }
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 8,
                             ),
-                          ],
-                        ],
-                      ),
+                            decoration: BoxDecoration(
+                              color: chipYellow,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Text(
+                                  'Chips',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                    color: Colors.black,
+                                  ),
+                                ),
+                                Text(
+                                  '$balance',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.black,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                ),
 
-                // Fixed bottom controls
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    vertical: 8,
-                    horizontal: 12,
-                  ),
-                  child: Column(
-                    children: [
-                      Column(
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              ChoiceChip(
-                                label: const Text('Rood'),
-                                selected: _betColor == 'red',
-                                onSelected: _spinning
-                                    ? null
-                                    : (v) => setState(
-                                          () => _betColor = v ? 'red' : null,
-                                        ),
-                                selectedColor: Colors.red.shade300,
-                              ),
-                              const SizedBox(width: 12),
-                              ChoiceChip(
-                                label: const Text('Zwart'),
-                                selected: _betColor == 'black',
-                                onSelected: _spinning
-                                    ? null
-                                    : (v) => setState(
-                                          () => _betColor = v ? 'black' : null,
-                                        ),
-                                selectedColor: Colors.black12,
-                              ),
-                              const SizedBox(width: 12),
-                              ChoiceChip(
-                                label: const Text('Even'),
-                                selected: _betParity == 'even',
-                                onSelected: _spinning
-                                    ? null
-                                    : (v) => setState(
-                                          () => _betParity = v ? 'even' : null,
-                                        ),
-                                selectedColor: Colors.blue.shade200,
-                              ),
-                              const SizedBox(width: 12),
-                              ChoiceChip(
-                                label: const Text('Oneven'),
-                                selected: _betParity == 'odd',
-                                onSelected: _spinning
-                                    ? null
-                                    : (v) => setState(
-                                          () => _betParity = v ? 'odd' : null,
-                                        ),
-                                selectedColor: Colors.blueGrey.shade200,
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: TextField(
-                                  controller: _numberController,
-                                  enabled: !_spinning,
-                                  keyboardType: TextInputType.number,
-                                  style: const TextStyle(color: Colors.black),
-                                  decoration: const InputDecoration(
-                                    labelText: 'Nummer (1-36, optioneel)',
-                                    border: OutlineInputBorder(),
-                                    isDense: true,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: TextField(
-                                  controller: _amountController,
-                                  enabled: !_spinning,
-                                  keyboardType: TextInputType.number,
-                                  style: const TextStyle(color: Colors.black),
-                                  decoration: const InputDecoration(
-                                    labelText: 'Inzet bedrag',
-                                    border: OutlineInputBorder(),
-                                    isDense: true,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 10),
-                              ElevatedButton(
-                                onPressed: _spinning ? null : _addBet,
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: chipYellow,
-                                  foregroundColor: Colors.black,
-                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                                ),
-                                child: const Text('Voeg bet toe'),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 10),
-                      if (_bets.isNotEmpty)
+                  const SizedBox(height: 12),
+                ],
+
+                // Main scrollable area (wheel + controls)
+                Expanded(
+                  child: SingleChildScrollView(
+                    child: Column(
+                      children: [
+                        // Wheel area
                         Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(10),
+                          padding: const EdgeInsets.all(18),
                           decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: Colors.black12),
+                            color: cardBg,
+                            borderRadius: BorderRadius.circular(12),
                           ),
                           child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('Bets (${_bets.length}) — totaal inzet: ${_bets.fold<int>(0, (s, b) => s + b.amount)}', style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w600)),
-                              const SizedBox(height: 8),
-                              Wrap(
-                                spacing: 8,
-                                runSpacing: 8,
-                                children: [
-                                  for (var i = 0; i < _bets.length; i++)
-                                    Chip(
-                                      label: Text(_describeBet(_bets[i])),
-                                      onDeleted: _spinning ? null : () => _removeBet(i),
-                                    ),
-                                ],
+                              Text(
+                                widget.game.description,
+                                style: const TextStyle(color: Colors.black),
+                                textAlign: TextAlign.center,
                               ),
+                              if (_spinning) ...[
+                                const SizedBox(height: 18),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(vertical: 14),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: SizedBox(
+                                    height: 200,
+                                    child: Center(
+                                      child: Stack(
+                                        alignment: Alignment.center,
+                                        children: [
+                                          Transform.rotate(
+                                            angle: _rotation,
+                                            child: CustomPaint(
+                                              size: const Size(180, 180),
+                                              painter: _WheelPainter(segments: _segments),
+                                            ),
+                                          ),
+                                          Positioned(
+                                            top: 6,
+                                            child: CustomPaint(
+                                              size: const Size(24, 24),
+                                              painter: _PointerPainter(),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ],
                           ),
                         ),
-                      const SizedBox(height: 12),
-                      ElevatedButton(
-                        onPressed: _spinning ? null : _spin,
-                        style: ElevatedButton.styleFrom(
-                          elevation: 10,
-                          shadowColor: Colors.black45,
-                          backgroundColor: chipYellow,
-                          foregroundColor: Colors.black,
-                          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 40),
-                        ),
-                        child: Text(
-                          _spinning ? 'Spinning...' : 'SPIN',
-                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        _targetIndex == null
-                            ? 'Kies kleur, even/oneven of nummer + inzet en druk op SPIN'
-                            : 'Laatste: ${_targetIndex! + 1} — ${_colorLabel(_colorForIndex(_targetIndex!))} / ${_parityLabel(_parityForIndex(_targetIndex!))}',
-                        style: const TextStyle(color: Colors.black),
-                      ),
-                    ],
+
+                        const SizedBox(height: 12),
+
+                        // Bottom controls (hidden during spin)
+                        if (!_spinning) ...[
+                          Container(
+                            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 0),
+                            child: Column(
+                              children: [
+                                Column(
+                                  children: [
+                                    Text('Kies je inzet type:', style: Theme.of(context).textTheme.titleSmall?.copyWith(color: Colors.black) ?? const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.black)),
+                                    const SizedBox(height: 8),
+                                    Wrap(
+                                      alignment: WrapAlignment.center,
+                                      spacing: 8,
+                                      runSpacing: 8,
+                                      children: [
+                                        ChoiceChip(
+                                          label: const Text('Rood'),
+                                          selected: _betColor == 'red',
+                                          onSelected: _spinning ? null : (v) => setState(() {
+                                            _betColor = v ? 'red' : null;
+                                            if (v) _betParity = null;
+                                          }),
+                                          selectedColor: Colors.grey.shade600,
+                                          backgroundColor: Colors.grey.shade400,
+                                        ),
+                                        ChoiceChip(
+                                          label: const Text('Zwart'),
+                                          selected: _betColor == 'black',
+                                          onSelected: _spinning ? null : (v) => setState(() {
+                                            _betColor = v ? 'black' : null;
+                                            if (v) _betParity = null;
+                                          }),
+                                          selectedColor: Colors.grey.shade600,
+                                          backgroundColor: Colors.grey.shade400,
+                                        ),
+                                        ChoiceChip(
+                                          label: const Text('Even'),
+                                          selected: _betParity == 'even',
+                                          onSelected: _spinning ? null : (v) => setState(() {
+                                            _betParity = v ? 'even' : null;
+                                            if (v) _betColor = null;
+                                          }),
+                                          selectedColor: Colors.grey.shade600,
+                                          backgroundColor: Colors.grey.shade400,
+                                        ),
+                                        ChoiceChip(
+                                          label: const Text('Oneven'),
+                                          selected: _betParity == 'odd',
+                                          onSelected: _spinning ? null : (v) => setState(() {
+                                            _betParity = v ? 'odd' : null;
+                                            if (v) _betColor = null;
+                                          }),
+                                          selectedColor: Colors.grey.shade600,
+                                          backgroundColor: Colors.grey.shade400,
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 16),
+                                    Container(
+                                      padding: const EdgeInsets.all(16),
+                                      decoration: BoxDecoration(
+                                        color: Colors.yellow.shade100,
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(color: Colors.black, width: 2),
+                                      ),
+                                      child: Column(
+                                        children: [
+                                          Text('Of kies een specifiek nummer:', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black)),
+                                          const SizedBox(height: 12),
+                                          TextField(
+                                            controller: _numberController,
+                                            enabled: !_spinning,
+                                            keyboardType: TextInputType.number,
+                                            style: const TextStyle(color: Colors.black, fontSize: 18, fontWeight: FontWeight.bold),
+                                            decoration: InputDecoration(
+                                              labelText: 'Nummer (1 tot 36)',
+                                              labelStyle: const TextStyle(color: Colors.black87, fontSize: 14),
+                                              hintText: 'bijv. 17',
+                                              hintStyle: const TextStyle(color: Colors.black38),
+                                              border: const OutlineInputBorder(borderSide: BorderSide(color: Colors.black, width: 2)),
+                                              enabledBorder: const OutlineInputBorder(borderSide: BorderSide(color: Colors.black, width: 2)),
+                                              focusedBorder: const OutlineInputBorder(borderSide: BorderSide(color: Colors.blue, width: 3)),
+                                              filled: true,
+                                              fillColor: Colors.white,
+                                              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    const SizedBox(height: 16),
+                                    Container(
+                                      padding: const EdgeInsets.all(16),
+                                      decoration: BoxDecoration(
+                                        color: Colors.green.shade100,
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(color: Colors.black, width: 2),
+                                      ),
+                                      child: Column(
+                                        children: [
+                                          Text('Inzet bedrag:', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black)),
+                                          const SizedBox(height: 12),
+                                          TextField(
+                                            controller: _amountController,
+                                            enabled: !_spinning,
+                                            keyboardType: TextInputType.number,
+                                            style: const TextStyle(color: Colors.black, fontSize: 18, fontWeight: FontWeight.bold),
+                                            decoration: InputDecoration(
+                                              labelText: 'Hoeveel chips inzetten?',
+                                              labelStyle: const TextStyle(color: Colors.black87, fontSize: 14),
+                                              hintText: '10',
+                                              hintStyle: const TextStyle(color: Colors.black38),
+                                              border: const OutlineInputBorder(borderSide: BorderSide(color: Colors.black, width: 2)),
+                                              enabledBorder: const OutlineInputBorder(borderSide: BorderSide(color: Colors.black, width: 2)),
+                                              focusedBorder: const OutlineInputBorder(borderSide: BorderSide(color: Colors.blue, width: 3)),
+                                              filled: true,
+                                              fillColor: Colors.white,
+                                              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                                            ),
+                                          ),
+                                          const SizedBox(height: 10),
+                                          ElevatedButton(onPressed: _spinning ? null : _addBet, style: ElevatedButton.styleFrom(backgroundColor: chipYellow, foregroundColor: Colors.black, padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12)), child: const Text('Voeg deze bet toe')),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                        const SizedBox(height: 10),
+                        if (_bets.isNotEmpty)
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(color: Colors.grey.shade800, borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.black)),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('Bets (${_bets.length}) — totaal inzet: ${_bets.fold<int>(0, (s, b) => s + b.amount)}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+                                const SizedBox(height: 8),
+                                Wrap(spacing: 8, runSpacing: 8, children: [for (var i = 0; i < _bets.length; i++) Chip(label: Text(_spinning ? _describeBetShort(_bets[i]) : _describeBet(_bets[i]), style: const TextStyle(color: Colors.black)), backgroundColor: Colors.grey.shade300, onDeleted: _spinning ? null : () => _removeBet(i))]),
+                              ],
+                            ),
+                          ),
+                        const SizedBox(height: 12),
+                        ElevatedButton(onPressed: _spinning ? null : _spin, style: ElevatedButton.styleFrom(elevation: 10, shadowColor: Colors.black45, backgroundColor: chipYellow, foregroundColor: Colors.black, padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 40)), child: Text(_spinning ? 'Spinning...' : 'SPIN', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700))),
+                        const SizedBox(height: 8),
+                        Text(_targetIndex == null ? 'Kies kleur, even/oneven of nummer + inzet en druk op SPIN' : 'Laatste: ${_targetIndex! + 1} — ${_colorLabel(_colorForIndex(_targetIndex!))} / ${_parityLabel(_parityForIndex(_targetIndex!))}', style: const TextStyle(color: Colors.black)),
+                      ],
+                    ),
                   ),
                 ),
               ],

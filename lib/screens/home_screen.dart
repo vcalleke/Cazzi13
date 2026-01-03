@@ -5,6 +5,7 @@ import '../data/games.dart';
 import 'game_screen.dart';
 import 'slots_screen.dart';
 import 'roulette_screen.dart';
+import 'payment_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -80,33 +81,49 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
 
                     // Chips amount pill on right
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
-                      ),
-                      decoration: BoxDecoration(
-                        color: chipYellow,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Text(
-                            'Chips',
-                            style: TextStyle(
-                              fontWeight: FontWeight.w700,
-                              color: Colors.black,
+                    GestureDetector(
+                      onTap: () async {
+                        final result = await Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) => PaymentScreen(
+                              currentBalance: balance,
+                              username: _username,
                             ),
                           ),
-                          Text(
-                            '$balance',
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w600,
-                              color: Colors.black,
+                        );
+                        if (result != null) {
+                          setState(() => balance = result);
+                          await _saveBalance();
+                        }
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                        decoration: BoxDecoration(
+                          color: chipYellow,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Text(
+                              'Chips',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w700,
+                                color: Colors.black,
+                              ),
                             ),
-                          ),
-                        ],
+                            Text(
+                              '$balance',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w600,
+                                color: Colors.black,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ],
