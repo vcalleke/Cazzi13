@@ -6,6 +6,7 @@ import 'game_screen.dart';
 import 'slots_screen.dart';
 import 'roulette_screen.dart';
 import 'payment_screen.dart';
+import 'ace_race_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -174,6 +175,12 @@ class _HomeScreenState extends State<HomeScreen> {
                               ),
                             );
                             if (res != null) setState(() => balance = res);
+                          } else if (g.id == 'ace_race') {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => const AceRaceScreen(),
+                              ),
+                            );
                           } else {
                             Navigator.of(context).push(
                               MaterialPageRoute(
@@ -198,7 +205,13 @@ class _HomeScreenState extends State<HomeScreen> {
                                 // Title on left with emoji
                                 Expanded(
                                   child: Text(
-                                    '${g.id == 'slots' ? '🎰' : g.id == 'roulette' ? '🎡' : g.id == 'ace_race' ? '🂡' : '🎯'} ${g.title.toUpperCase()}',
+                                    '${g.id == 'slots'
+                                        ? '🎰'
+                                        : g.id == 'roulette'
+                                        ? '🎡'
+                                        : g.id == 'ace_race'
+                                        ? '🂡'
+                                        : '🎯'} ${g.title.toUpperCase()}',
                                     style: const TextStyle(
                                       fontSize: 22,
                                       fontWeight: FontWeight.w800,
@@ -214,36 +227,49 @@ class _HomeScreenState extends State<HomeScreen> {
                                     shadowColor: Colors.black45,
                                     backgroundColor: Colors.white,
                                     foregroundColor: Colors.black,
-                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 8,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
                                   ),
                                   onPressed: () async {
                                     if (g.id == 'slots') {
-                                      final res = await Navigator.of(context).push<int?>(
-                                        MaterialPageRoute(
-                                          builder: (_) => SlotsScreen(
-                                            game: g,
-                                            startBalance: balance,
-                                          ),
-                                        ),
-                                      );
+                                      final res = await Navigator.of(context)
+                                          .push<int?>(
+                                            MaterialPageRoute(
+                                              builder: (_) => SlotsScreen(
+                                                game: g,
+                                                startBalance: balance,
+                                              ),
+                                            ),
+                                          );
                                       if (res != null) {
                                         setState(() => balance = res);
                                         _saveBalance();
                                       }
                                     } else if (g.id == 'roulette') {
-                                      final res = await Navigator.of(context).push<int?>(
-                                        MaterialPageRoute(
-                                          builder: (_) => RouletteScreen(
-                                            game: g,
-                                            startBalance: balance,
-                                          ),
-                                        ),
-                                      );
+                                      final res = await Navigator.of(context)
+                                          .push<int?>(
+                                            MaterialPageRoute(
+                                              builder: (_) => RouletteScreen(
+                                                game: g,
+                                                startBalance: balance,
+                                              ),
+                                            ),
+                                          );
                                       if (res != null) {
                                         setState(() => balance = res);
                                         _saveBalance();
                                       }
+                                    } else if (g.id == 'ace_race') {
+                                      Navigator.of(context).push(
+                                        MaterialPageRoute(
+                                          builder: (_) => const AceRaceScreen(),
+                                        ),
+                                      );
                                     } else {
                                       Navigator.of(context).push(
                                         MaterialPageRoute(
@@ -252,7 +278,13 @@ class _HomeScreenState extends State<HomeScreen> {
                                       );
                                     }
                                   },
-                                  child: const Text('PLAY', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                                  child: const Text(
+                                    'PLAY',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
                                 ),
                               ],
                             ),
