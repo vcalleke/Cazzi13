@@ -69,8 +69,8 @@ class _SplashScreenState extends State<SplashScreen> {
     final bg = const Color(0xFFBFBFBF);
     final lavender = const Color(0xFFEADCF7);
     final screenH = MediaQuery.of(context).size.height;
-    final iconBlockH = (screenH * 0.22).clamp(120.0, 260.0) as double;
-    final infoCardH = (screenH * 0.36).clamp(160.0, 360.0) as double;
+    final iconBlockH = (screenH * 0.22).clamp(120.0, 260.0).toDouble();
+    final infoCardH = (screenH * 0.36).clamp(160.0, 360.0).toDouble();
 
     return Scaffold(
       backgroundColor: bg,
@@ -90,8 +90,14 @@ class _SplashScreenState extends State<SplashScreen> {
                       letterSpacing: 2,
                     ),
                     children: [
-                      TextSpan(text: 'CA', style: TextStyle(color: Colors.red[700])),
-                      const TextSpan(text: 'ZZI13', style: TextStyle(color: Colors.black)),
+                      TextSpan(
+                        text: 'CA',
+                        style: TextStyle(color: Colors.red[700]),
+                      ),
+                      const TextSpan(
+                        text: 'ZZI13',
+                        style: TextStyle(color: Colors.black),
+                      ),
                     ],
                   ),
                 ),
@@ -115,7 +121,11 @@ class _SplashScreenState extends State<SplashScreen> {
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: const Center(
-                      child: Icon(Icons.casino, size: 72, color: Colors.black87),
+                      child: Icon(
+                        Icons.casino,
+                        size: 72,
+                        color: Colors.black87,
+                      ),
                     ),
                   ),
                 ),
@@ -126,7 +136,10 @@ class _SplashScreenState extends State<SplashScreen> {
               // Info card with progress
               Container(
                 height: infoCardH,
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 18),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 18,
+                ),
                 decoration: BoxDecoration(
                   color: bg,
                   borderRadius: BorderRadius.circular(18),
@@ -136,20 +149,31 @@ class _SplashScreenState extends State<SplashScreen> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      _username.isEmpty ? 'Welcome back' : 'Welcome back $_username',
-                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      _username.isEmpty
+                          ? 'Welcome back'
+                          : 'Welcome back $_username',
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     const SizedBox(height: 12),
                     SizedBox(
-                      width: (infoCardH * 0.35).clamp(80.0, 140.0) as double,
-                      height: (infoCardH * 0.35).clamp(80.0, 140.0) as double,
+                      width: (infoCardH * 0.35).clamp(80.0, 140.0).toDouble(),
+                      height: (infoCardH * 0.35).clamp(80.0, 140.0).toDouble(),
                       child: CustomPaint(
-                        painter: _RingPainter(progress: _progress, lavender: lavender),
+                        painter: _RingPainter(
+                          progress: _progress,
+                          lavender: lavender,
+                        ),
                         child: const Center(),
                       ),
                     ),
                     const SizedBox(height: 12),
-                    const Text('Shuffling cards and counting ships...', style: TextStyle(fontWeight: FontWeight.w600)),
+                    const Text(
+                      'Shuffling cards and counting ships...',
+                      style: TextStyle(fontWeight: FontWeight.w600),
+                    ),
                   ],
                 ),
               ),
@@ -198,15 +222,25 @@ class _RingPainter extends CustomPainter {
     final sweep = 2 * math.pi * progress;
 
     // draw lavender arc for progress
-    canvas.drawArc(Rect.fromCircle(center: center, radius: radius), startAngle,
-        sweep, false, arcPaint);
+    canvas.drawArc(
+      Rect.fromCircle(center: center, radius: radius),
+      startAngle,
+      sweep,
+      false,
+      arcPaint,
+    );
 
     // draw a small black accent at the end of the arc (if progress > 0)
     if (progress > 0.02) {
       final accentSweep = 2 * math.pi * (0.06); // small segment
       final accentStart = startAngle + sweep - accentSweep;
-      canvas.drawArc(Rect.fromCircle(center: center, radius: radius), accentStart,
-          accentSweep, false, blackPaint);
+      canvas.drawArc(
+        Rect.fromCircle(center: center, radius: radius),
+        accentStart,
+        accentSweep,
+        false,
+        blackPaint,
+      );
     }
   }
 

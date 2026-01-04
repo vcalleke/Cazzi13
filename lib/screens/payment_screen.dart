@@ -36,10 +36,11 @@ class _PaymentScreenState extends State<PaymentScreen> {
     final prefs = await SharedPreferences.getInstance();
     final newBalance = balance + amount;
     balance = newBalance;
-    
-    final key = 'balance_${widget.username.isEmpty ? 'guest' : widget.username}';
+
+    final key =
+        'balance_${widget.username.isEmpty ? 'guest' : widget.username}';
     await prefs.setInt(key, newBalance);
-    
+
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -218,7 +219,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
                         final package = chipPackages.firstWhere(
                           (p) => p['chips'] == selectedAmount,
                         );
-                        final totalChips = (selectedAmount! + (package['bonus'] as int)) as int;
+                        final totalChips =
+                            selectedAmount! + (package['bonus'] as int);
                         _addChips(totalChips);
                       },
                       style: ElevatedButton.styleFrom(
