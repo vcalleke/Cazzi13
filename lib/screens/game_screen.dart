@@ -68,16 +68,28 @@ class _GameScreenState extends State<GameScreen> {
             child: Padding(
               padding: const EdgeInsets.all(12.0),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
                   color: chipYellow,
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(10),
                 ),
                 child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Text('Chips', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12, color: Colors.black)),
-                    Text('$balance', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12, color: Colors.black)),
+                    const Text(
+                      'Chips',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        color: Colors.black,
+                      ),
+                    ),
+                    Text(
+                      '$balance',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black,
+                      ),
+                    ),
                   ],
                 ),
               ),

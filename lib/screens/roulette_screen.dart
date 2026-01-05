@@ -250,7 +250,10 @@ class _RouletteScreenState extends State<RouletteScreen>
   }
 
   String _colorForIndex(int index) {
-    return (index % 2 == 0) ? 'red' : 'black';
+    final number = index + 1;
+    // Real roulette color distribution
+    const redNumbers = [1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36];
+    return redNumbers.contains(number) ? 'red' : 'black';
   }
 
   String _parityForIndex(int index) {

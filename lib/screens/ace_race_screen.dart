@@ -2,6 +2,8 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:cazzi13/theme/app_theme.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'payment_screen.dart';
 
 class AceRaceScreen extends StatefulWidget {
   const AceRaceScreen({super.key});
@@ -11,231 +13,511 @@ class AceRaceScreen extends StatefulWidget {
 }
 
 class _AceRaceScreenState extends State<AceRaceScreen> {
-  static const suits = ['Harten', 'Koeken', 'Schoppen', 'Klaveren'];
-  final Map<String, int> positions = {for (var s in suits) s: 0};
-  String? selectedSuit;
-  int bet = 1;
-  late List<String> deck;
-  String lastDraw = '';
+  static const horses = ['⚡ White Lightning', '⚫ Blackthunder', '🌿 Green Blaze', '🔥 Pablo'];
+  static const finishLine = 35;
+  final Map<String, int> positions = {for (var h in horses) h: 0};
+  String? selectedHorse;
+  int bet = 10;
+  int balance = 0;
+  String _username = '';
   String message = '';
+  String commentary = '';
+  bool racing = false;
   final Random _rand = Random();
+  int _moveCounter = 0;
+  DateTime? _lastCommentaryTime;
 
   @override
   void initState() {
     super.initState();
-    _resetDeck();
+    _loadBalance();
   }
 
-  void _resetDeck() {
-    deck = [];
-    const ranks = [
-      'A',
-      '2',
-      '3',
-      '4',
-      '5',
-      '6',
-      '7',
-      '8',
-      '9',
-      '10',
-      'J',
-      'Q',
-      'K',
-    ];
-    final suitsShort = ['H', 'D', 'S', 'C'];
-    for (var s in suitsShort) {
-      for (var r in ranks) {
-        deck.add('$r-$s');
-      }
-    }
-    deck.shuffle(_rand);
-    for (var s in suits) positions[s] = 0;
-    selectedSuit = null;
-    lastDraw = '';
-    message = '';
+  Future<void> _loadBalance() async {
+    final prefs = await SharedPreferences.getInstance();
+    final name = prefs.getString('username') ?? '';
+    final key = 'balance_${name.isEmpty ? 'guest' : name}';
+    final stored = prefs.getInt(key) ?? 0;
+    if (!mounted) return;
+    setState(() {
+      _username = name;
+      balance = stored;
+    });
   }
 
-  String _drawCard() {
-    if (deck.isEmpty) _resetDeck();
-    return deck.removeLast();
+  Future<void> _saveBalance() async {
+    final prefs = await SharedPreferences.getInstance();
+    final key = 'balance_${_username.isEmpty ? 'guest' : _username}';
+    await prefs.setInt(key, balance);
   }
 
-  void _onDraw() {
-    if (selectedSuit == null) {
-      setState(() => message = 'Kies eerst een aas om op in te zetten.');
+  void _startRace() async {
+    if (selectedHorse == null) {
+      setState(() => message = 'Kies eerst een paard om op in te zetten!');
       return;
     }
 
     setState(() {
-      final card = _drawCard();
-      lastDraw = card;
-      final suitChar = card.split('-').last; // H, D, S, C
-      String movedSuit;
-      switch (suitChar) {
-        case 'H':
-          movedSuit = 'Harten';
-          break;
-        case 'D':
-          movedSuit = 'Koeken';
-          break;
-        case 'S':
-          movedSuit = 'Schoppen';
-          break;
-        default:
-          movedSuit = 'Klaveren';
-      }
-
-      positions[movedSuit] = (positions[movedSuit] ?? 0) + 1;
-      message = '$movedSuit krijgt 1 stap (kaart: $card)';
-
-      final winner = positions.entries.firstWhere(
-        (e) => e.value >= 5,
-        orElse: () => const MapEntry('', 0),
-      );
-
-      if (winner.key != '') {
-        final won = winner.key == selectedSuit;
-        final payout = won ? bet * 4 : 0;
-        message = won
-            ? 'Gewonnen! ${winner.key} won — uitbetaling: ${payout}x'
-            : 'Verloren — ${winner.key} won. Uitbetaling: 0';
-      }
+      racing = true;
+      _moveCounter = 0;
+      _lastCommentaryTime = DateTime.now();
+      for (var h in horses) positions[h] = 0;
+      message = 'De race is begonnen!';
+      commentary = '🏁 En ze zijn weg!';
     });
+
+    // Race loop
+    while (true) {
+      await Future.delayed(const Duration(milliseconds: 1000));
+      
+      bool hasWinner = false;
+      _moveCounter++;
+      
+      setState(() {
+        // Elk paard beweegt 1-3 vakjes
+        Map<String, int> moves = {};
+        for (var h in horses) {
+          final move = _rand.nextInt(3) + 1; // 1, 2, of 3
+          moves[h] = move;
+          positions[h] = (positions[h] ?? 0) + move;
+          
+          if (positions[h]! >= finishLine) {
+            hasWinner = true;
+          }
+        }
+        
+        // Commentaar elke 4.5 seconden
+        if (_lastCommentaryTime != null && 
+            DateTime.now().difference(_lastCommentaryTime!).inMilliseconds >= 4500) {
+          commentary = _generateCommentary(moves);
+          _lastCommentaryTime = DateTime.now();
+        }
+      });
+
+      if (hasWinner) {
+        // Find winner (highest position)
+        final winner = positions.entries.reduce((a, b) => a.value > b.value ? a : b).key;
+        
+        setState(() {
+          racing = false;
+          final won = winner == selectedHorse;
+          if (won) {
+            balance += bet * 4;
+          } else {
+            balance -= bet;
+          }
+          _saveBalance();
+          message = won
+              ? '🎉 Gewonnen! $winner wint — je wint ${bet * 4} chips!'
+              : '😞 Verloren — $winner wint. Je verliest $bet chips.';
+          commentary = '🏆 $winner kruist de finish!';
+        });
+        break;
+      }
+    }
+  }
+  
+  String _generateCommentary(Map<String, int> moves) {
+    // Sorteer paarden op positie
+    final sorted = positions.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+    
+    final leader = sorted[0].key;
+    final lastPlace = sorted[3].key;
+    
+    final commentaries = [
+      '💨 $leader is aan de leiding!',
+      '🔥 $leader neemt de kop!',
+      '😰 $lastPlace blijft achter!',
+      '⚡ $leader maakt snelheid!',
+      '🐌 $lastPlace vertraagt nu even!',
+      '👀 Het is nog spannend!',
+      '💪 ${sorted[1].key} probeert in te halen!',
+      '🎯 $leader houdt de leiding vast!',
+    ];
+    
+    // Extra commentaar voor grote sprongen
+    for (var entry in moves.entries) {
+      if (entry.value == 3) {
+        return '🚀 ${entry.key} maakt een enorme sprong!';
+      }
+    }
+    
+    return commentaries[_rand.nextInt(commentaries.length)];
   }
 
   void _resetRace() {
     setState(() {
-      for (var s in suits) positions[s] = 0;
-      selectedSuit = null;
-      lastDraw = '';
+      for (var h in horses) positions[h] = 0;
+      selectedHorse = null;
       message = '';
-      _resetDeck();
+      commentary = '';
+      racing = false;
+      _moveCounter = 0;
+      _lastCommentaryTime = null;
     });
   }
 
-  Widget _buildLane(String suit) {
-    final pos = positions[suit] ?? 0;
-    final tiles = List.generate(5, (i) => i < pos);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(suit, style: const TextStyle(fontWeight: FontWeight.bold)),
-        const SizedBox(height: 6),
-        Row(
-          children: tiles
-              .map(
-                (filled) => Expanded(
-                  child: Container(
-                    margin: const EdgeInsets.all(4),
-                    height: 28,
-                    decoration: BoxDecoration(
-                      color: filled ? AppTheme.accent : AppTheme.primary,
-                      borderRadius: BorderRadius.circular(6),
+  Widget _buildLane(String horse) {
+    final pos = positions[horse] ?? 0;
+    final progress = (pos / finishLine).clamp(0.0, 1.0);
+    
+    // Different colors for each horse
+    Color laneColor;
+    if (horse.contains('White')) {
+      laneColor = Colors.blue.shade100;
+    } else if (horse.contains('Black')) {
+      laneColor = Colors.grey.shade300;
+    } else if (horse.contains('Green')) {
+      laneColor = Colors.green.shade100;
+    } else {
+      laneColor = Colors.orange.shade100;
+    }
+    
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: selectedHorse == horse ? Colors.amber.shade400 : Colors.grey.shade200,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: selectedHorse == horse ? Colors.amber.shade700 : Colors.grey.shade400,
+                    width: 2,
+                  ),
+                ),
+                child: Text(
+                  horse,
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                    color: selectedHorse == horse ? Colors.black : Colors.black87,
+                  ),
+                ),
+              ),
+              const Spacer(),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.grey.shade400),
+                ),
+                child: Text(
+                  '$pos/$finishLine',
+                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Stack(
+            children: [
+              Container(
+                height: 50,
+                decoration: BoxDecoration(
+                  color: laneColor,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: Colors.grey.shade500, width: 3),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+              ),
+              // Progress indicator
+              FractionallySizedBox(
+                widthFactor: progress,
+                child: Container(
+                  height: 50,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        AppTheme.accent.withOpacity(0.3),
+                        AppTheme.accent.withOpacity(0.5),
+                      ],
+                    ),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              ),
+              // Horse emoji - same for all
+              FractionallySizedBox(
+                widthFactor: progress,
+                child: Container(
+                  height: 50,
+                  alignment: Alignment.centerRight,
+                  padding: const EdgeInsets.only(right: 6),
+                  child: const Text(
+                    '🏇',
+                    style: TextStyle(fontSize: 32),
+                  ),
+                ),
+              ),
+              // Finish line
+              Positioned(
+                right: 0,
+                top: 0,
+                bottom: 0,
+                child: Container(
+                  width: 4,
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [Colors.black, Colors.white, Colors.black],
+                      stops: [0.0, 0.5, 1.0],
                     ),
                   ),
                 ),
-              )
-              .toList(),
-        ),
-      ],
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    const headerBg = Color(0xFFBDBDB0);
+    const chipYellow = Color(0xFFF4D03F);
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Ace Race'),
+        title: const Text('🏇 Paarden Race'),
         backgroundColor: AppTheme.primary,
       ),
       body: SafeArea(
-        child: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.all(12.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
+        child: Padding(
+          padding: const EdgeInsets.all(14.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Header with balance
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 12,
+                ),
+                decoration: BoxDecoration(
+                  color: headerBg,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        _username.isEmpty ? 'Player' : _username,
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.black,
+                        ),
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: () async {
+                        final result = await Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) => PaymentScreen(
+                              currentBalance: balance,
+                              username: _username,
+                            ),
+                          ),
+                        );
+                        if (result != null) {
+                          setState(() => balance = result);
+                          await _saveBalance();
+                        }
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                        decoration: BoxDecoration(
+                          color: chipYellow,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Text(
+                              'Chips',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w700,
+                                color: Colors.black,
+                              ),
+                            ),
+                            Text(
+                              '$balance',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w600,
+                                color: Colors.black,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              // Main content
+              Expanded(
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const Text(
+                        'Kies je paard:',
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                const SizedBox(height: 8),
                 Wrap(
                   spacing: 8,
                   runSpacing: 8,
-                  children: suits.map((s) {
-                    final isSelected = selectedSuit == s;
+                  children: horses.map((h) {
+                    final isSelected = selectedHorse == h;
                     return ChoiceChip(
-                      label: Text(s),
+                      label: Text(h),
                       selected: isSelected,
-                      labelStyle: TextStyle(color: Colors.black),
+                      labelStyle: const TextStyle(color: Colors.black),
                       selectedColor: AppTheme.accent,
                       backgroundColor: AppTheme.primary,
                       visualDensity: VisualDensity.compact,
-                      onSelected: (_) => setState(() => selectedSuit = s),
+                      onSelected: racing ? null : (_) => setState(() => selectedHorse = h),
                     );
                   }).toList(),
                 ),
 
-                const SizedBox(height: 12),
+                const SizedBox(height: 16),
 
-                _buildLane(suits[0]),
-                const SizedBox(height: 8),
-                _buildLane(suits[1]),
-                const SizedBox(height: 8),
-                _buildLane(suits[2]),
-                const SizedBox(height: 8),
-                _buildLane(suits[3]),
+                _buildLane(horses[0]),
+                _buildLane(horses[1]),
+                _buildLane(horses[2]),
+                _buildLane(horses[3]),
 
-                const SizedBox(height: 12),
+                const SizedBox(height: 16),
 
                 Row(
                   children: [
-                    const Text('Inzet:'),
+                    const Text('Inzet:', style: TextStyle(fontWeight: FontWeight.bold)),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Slider(
                         value: bet.toDouble(),
-                        min: 1,
+                        min: 10,
                         max: 100,
-                        divisions: 99,
+                        divisions: 9,
                         activeColor: AppTheme.accent,
                         label: bet.toString(),
-                        onChanged: (v) => setState(() => bet = v.toInt()),
+                        onChanged: racing ? null : (v) => setState(() => bet = v.toInt()),
                       ),
                     ),
                     const SizedBox(width: 8),
-                    Text('$bet'),
+                    Text('$bet chips', style: const TextStyle(fontWeight: FontWeight.bold)),
                   ],
                 ),
 
-                const SizedBox(height: 8),
-                Text('Laatste kaart: $lastDraw'),
-                const SizedBox(height: 8),
-                Text(
-                  message,
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: AppTheme.accent,
+                const SizedBox(height: 12),
+                
+                if (commentary.isNotEmpty)
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    margin: const EdgeInsets.only(bottom: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.shade100,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.orange.shade300, width: 2),
+                    ),
+                    child: Row(
+                      children: [
+                        const Text('📢 ', style: TextStyle(fontSize: 18)),
+                        Expanded(
+                          child: Text(
+                            commentary,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
+                
+                if (message.isNotEmpty)
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: message.contains('Gewonnen') 
+                          ? Colors.green.shade100 
+                          : message.contains('Verloren')
+                              ? Colors.red.shade100
+                              : Colors.blue.shade100,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: message.contains('Gewonnen')
+                            ? Colors.green
+                            : message.contains('Verloren')
+                                ? Colors.red
+                                : Colors.blue,
+                        width: 2,
+                      ),
+                    ),
+                    child: Text(
+                      message,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
 
                 const SizedBox(height: 12),
                 Row(
                   children: [
                     Expanded(
                       child: ElevatedButton(
-                        onPressed: _onDraw,
-                        child: const Text('Trek kaart'),
+                        onPressed: racing ? null : _startRace,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppTheme.accent,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                        ),
+                        child: Text(
+                          racing ? 'Race bezig...' : '🏁 Start Race!',
+                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                        ),
                       ),
                     ),
                     const SizedBox(width: 8),
                     ElevatedButton(
-                      onPressed: _resetRace,
+                      onPressed: racing ? null : _resetRace,
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                      ),
                       child: const Text('Reset'),
                     ),
                   ],
                 ),
+                const SizedBox(height: 20),
               ],
             ),
           ),
         ),
+      ],
+    ),
+  ),
       ),
     );
   }

@@ -14,8 +14,8 @@ final List<Game> games = [
   ),
   Game(
     id: 'ace_race',
-    title: 'Ace Race',
-    description: 'Race to the finish with the ace.',
+    title: '🏇 Horse Racing',
+    description: 'Zet in op je favoriete paard en win!',
   ),
 ];
 

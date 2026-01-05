@@ -176,11 +176,15 @@ class _HomeScreenState extends State<HomeScreen> {
                             );
                             if (res != null) setState(() => balance = res);
                           } else if (g.id == 'ace_race') {
-                            Navigator.of(context).push(
+                            final res = await Navigator.of(context).push<int?>(
                               MaterialPageRoute(
                                 builder: (_) => const AceRaceScreen(),
                               ),
                             );
+                            if (res != null) {
+                              setState(() => balance = res);
+                              await _saveBalance();
+                            }
                           } else {
                             Navigator.of(context).push(
                               MaterialPageRoute(
@@ -210,7 +214,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                         : g.id == 'roulette'
                                         ? '🎡'
                                         : g.id == 'ace_race'
-                                        ? '🂡'
+                                        ? '�'
                                         : '🎯'} ${g.title.toUpperCase()}',
                                     style: const TextStyle(
                                       fontSize: 22,
