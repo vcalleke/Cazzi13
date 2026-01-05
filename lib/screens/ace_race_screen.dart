@@ -164,9 +164,7 @@ class _AceRaceScreenState extends State<AceRaceScreen> {
                     return ChoiceChip(
                       label: Text(s),
                       selected: isSelected,
-                      labelStyle: TextStyle(
-                        color: isSelected ? Colors.black : Colors.white,
-                      ),
+                      labelStyle: TextStyle(color: Colors.black),
                       selectedColor: AppTheme.accent,
                       backgroundColor: AppTheme.primary,
                       visualDensity: VisualDensity.compact,

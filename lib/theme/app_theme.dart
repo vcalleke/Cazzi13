@@ -1,19 +1,29 @@
 import 'package:flutter/material.dart';
 
 class AppTheme {
-  static const Color background = Color(0xFF1E1E1E); // donker casino-zwart
-  static const Color primary = Color(0xFF2C2C2C); // donkergrijs
-  static const Color accent = Color(0xFFFFC107); // goud/geel accent
+  // Aanpasbare kleuren: wijzig deze waarden om het hele thema te veranderen
+  static const Color background = Color(0xFFFFFFFF); // wit
+  static const Color primary = Color(
+    0xFFF3F4F6,
+  ); // lichtgrijs voor kaarten/achtergrond
+  static const Color accent = Color(0xFFFFC107); // goud/geel accent (standaard)
 
   static ThemeData get theme {
     return ThemeData(
-      brightness: Brightness.dark,
+      brightness: Brightness.light,
       scaffoldBackgroundColor: background,
       primaryColor: primary,
-      colorScheme: ColorScheme.dark(
+      appBarTheme: const AppBarTheme(
+        backgroundColor: primary,
+        foregroundColor: Colors.black,
+        elevation: 0,
+      ),
+      colorScheme: ColorScheme.light(
         primary: primary,
         secondary: accent,
         background: background,
+        onPrimary: Colors.black,
+        onSecondary: Colors.black,
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
@@ -29,9 +39,9 @@ class AppTheme {
         headlineLarge: TextStyle(
           fontSize: 28,
           fontWeight: FontWeight.bold,
-          color: Colors.white,
+          color: Colors.black,
         ),
-        bodyMedium: TextStyle(fontSize: 16, color: Colors.white70),
+        bodyMedium: TextStyle(fontSize: 16, color: Colors.black87),
       ),
     );
   }
