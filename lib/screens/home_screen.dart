@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../data/games.dart';
+import '../theme/app_theme.dart';
 import 'game_screen.dart';
 import 'slots_screen.dart';
 import 'roulette_screen.dart';
@@ -45,12 +46,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final headerBg = const Color(0xFFBDBDB0); // muted khaki/grey from mock
-    final cardBg = const Color(0xFFE0E0E0); // light grey for game cards
-    final chipYellow = const Color(0xFFF4D03F);
-
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppTheme.background,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(14.0),
@@ -64,8 +61,15 @@ class _HomeScreenState extends State<HomeScreen> {
                   vertical: 12,
                 ),
                 decoration: BoxDecoration(
-                  color: headerBg,
+                  color: AppTheme.cardBg,
                   borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
                 ),
                 child: Row(
                   children: [
@@ -76,7 +80,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         style: const TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.w700,
-                          color: Colors.black,
+                          color: AppTheme.textDark,
                         ),
                       ),
                     ),
@@ -103,7 +107,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           vertical: 8,
                         ),
                         decoration: BoxDecoration(
-                          color: chipYellow,
+                          color: AppTheme.accent,
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Column(
@@ -113,14 +117,14 @@ class _HomeScreenState extends State<HomeScreen> {
                               'Chips',
                               style: TextStyle(
                                 fontWeight: FontWeight.w700,
-                                color: Colors.black,
+                                color: AppTheme.textDark,
                               ),
                             ),
                             Text(
                               '$balance',
                               style: const TextStyle(
                                 fontWeight: FontWeight.w600,
-                                color: Colors.black,
+                                color: AppTheme.textDark,
                               ),
                             ),
                           ],
@@ -139,7 +143,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 style: TextStyle(
                   fontSize: 26,
                   fontWeight: FontWeight.w800,
-                  color: Colors.black,
+                  color: AppTheme.primary,
                 ),
               ),
 
@@ -178,7 +182,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           } else if (g.id == 'ace_race') {
                             final res = await Navigator.of(context).push<int?>(
                               MaterialPageRoute(
-                                builder: (_) => const AceRaceScreen(),
+                                builder: (_) => AceRaceScreen(startBalance: balance),
                               ),
                             );
                             if (res != null) {
@@ -196,8 +200,15 @@ class _HomeScreenState extends State<HomeScreen> {
                         child: Container(
                           margin: const EdgeInsets.symmetric(vertical: 8),
                           decoration: BoxDecoration(
-                            color: cardBg,
+                            color: AppTheme.cardBg,
                             borderRadius: BorderRadius.circular(14),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.08),
+                                blurRadius: 6,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
                           ),
                           child: Padding(
                             padding: const EdgeInsets.symmetric(
@@ -214,12 +225,12 @@ class _HomeScreenState extends State<HomeScreen> {
                                         : g.id == 'roulette'
                                         ? '🎡'
                                         : g.id == 'ace_race'
-                                        ? '�'
+                                        ? '🏇'
                                         : '🎯'} ${g.title.toUpperCase()}',
                                     style: const TextStyle(
                                       fontSize: 22,
                                       fontWeight: FontWeight.w800,
-                                      color: Colors.black,
+                                      color: AppTheme.textDark,
                                     ),
                                   ),
                                 ),
@@ -227,10 +238,10 @@ class _HomeScreenState extends State<HomeScreen> {
                                 // Right-side small button label (elevated for tactile feel)
                                 ElevatedButton(
                                   style: ElevatedButton.styleFrom(
-                                    elevation: 6,
-                                    shadowColor: Colors.black45,
-                                    backgroundColor: Colors.white,
-                                    foregroundColor: Colors.black,
+                                    elevation: 3,
+                                    shadowColor: Colors.black26,
+                                    backgroundColor: AppTheme.accent,
+                                    foregroundColor: AppTheme.textDark,
                                     padding: const EdgeInsets.symmetric(
                                       horizontal: 12,
                                       vertical: 8,
@@ -269,11 +280,18 @@ class _HomeScreenState extends State<HomeScreen> {
                                         _saveBalance();
                                       }
                                     } else if (g.id == 'ace_race') {
-                                      Navigator.of(context).push(
-                                        MaterialPageRoute(
-                                          builder: (_) => const AceRaceScreen(),
-                                        ),
-                                      );
+                                      final res = await Navigator.of(context)
+                                          .push<int?>(
+                                            MaterialPageRoute(
+                                              builder: (_) => AceRaceScreen(
+                                                startBalance: balance,
+                                              ),
+                                            ),
+                                          );
+                                      if (res != null) {
+                                        setState(() => balance = res);
+                                        await _saveBalance();
+                                      }
                                     } else {
                                       Navigator.of(context).push(
                                         MaterialPageRoute(

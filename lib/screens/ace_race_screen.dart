@@ -6,7 +6,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'payment_screen.dart';
 
 class AceRaceScreen extends StatefulWidget {
-  const AceRaceScreen({super.key});
+  final int startBalance;
+  
+  const AceRaceScreen({super.key, required this.startBalance});
 
   @override
   State<AceRaceScreen> createState() => _AceRaceScreenState();
@@ -24,12 +26,12 @@ class _AceRaceScreenState extends State<AceRaceScreen> {
   String commentary = '';
   bool racing = false;
   final Random _rand = Random();
-  int _moveCounter = 0;
   DateTime? _lastCommentaryTime;
 
   @override
   void initState() {
     super.initState();
+    balance = widget.startBalance;
     _loadBalance();
   }
 
@@ -37,11 +39,11 @@ class _AceRaceScreenState extends State<AceRaceScreen> {
     final prefs = await SharedPreferences.getInstance();
     final name = prefs.getString('username') ?? '';
     final key = 'balance_${name.isEmpty ? 'guest' : name}';
-    final stored = prefs.getInt(key) ?? 0;
+    final stored = prefs.getInt(key);
     if (!mounted) return;
     setState(() {
       _username = name;
-      balance = stored;
+      if (stored != null) balance = stored;
     });
   }
 
@@ -57,21 +59,28 @@ class _AceRaceScreenState extends State<AceRaceScreen> {
       return;
     }
 
+    if (balance < bet) {
+      setState(() => message = 'Niet genoeg chips! Je hebt $balance chips.');
+      return;
+    }
+
+    // Trek inzet af aan het begin
     setState(() {
       racing = true;
-      _moveCounter = 0;
+      balance -= bet;
       _lastCommentaryTime = DateTime.now();
       for (var h in horses) positions[h] = 0;
       message = 'De race is begonnen!';
       commentary = '🏁 En ze zijn weg!';
     });
+    
+    await _saveBalance(); // Save immediately after deducting bet
 
     // Race loop
     while (true) {
       await Future.delayed(const Duration(milliseconds: 1000));
       
       bool hasWinner = false;
-      _moveCounter++;
       
       setState(() {
         // Elk paard beweegt 1-3 vakjes
@@ -98,20 +107,20 @@ class _AceRaceScreenState extends State<AceRaceScreen> {
         // Find winner (highest position)
         final winner = positions.entries.reduce((a, b) => a.value > b.value ? a : b).key;
         
+        final won = winner == selectedHorse;
         setState(() {
           racing = false;
-          final won = winner == selectedHorse;
           if (won) {
-            balance += bet * 4;
-          } else {
-            balance -= bet;
+            // Add winnings (bet was already deducted, so add total payout)
+            balance += bet * 5; // 5x because bet was already deducted, so net is 4x
           }
-          _saveBalance();
+          // If lost, bet was already deducted, so do nothing
           message = won
-              ? '🎉 Gewonnen! $winner wint — je wint ${bet * 4} chips!'
+              ? '🎉 Gewonnen! $winner wint — je wint ${bet * 4} chips! (inzet teruggekregen + ${bet * 3} winst)'
               : '😞 Verloren — $winner wint. Je verliest $bet chips.';
           commentary = '🏆 $winner kruist de finish!';
         });
+        await _saveBalance();
         break;
       }
     }
@@ -153,7 +162,6 @@ class _AceRaceScreenState extends State<AceRaceScreen> {
       message = '';
       commentary = '';
       racing = false;
-      _moveCounter = 0;
       _lastCommentaryTime = null;
     });
   }
@@ -286,20 +294,25 @@ class _AceRaceScreenState extends State<AceRaceScreen> {
 
   @override
   Widget build(BuildContext context) {
-    const headerBg = Color(0xFFBDBDB0);
-    const chipYellow = Color(0xFFF4D03F);
+    const headerBg = AppTheme.cardBg;
+    const chipYellow = AppTheme.accent;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('🏇 Paarden Race'),
-        backgroundColor: AppTheme.primary,
-      ),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(14.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
+    return WillPopScope(
+      onWillPop: () async {
+        Navigator.of(context).pop(balance);
+        return false;
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('🏇 Paarden Race'),
+          backgroundColor: AppTheme.primary,
+        ),
+        body: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(14.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
               // Header with balance
               Container(
                 padding: const EdgeInsets.symmetric(
@@ -518,6 +531,7 @@ class _AceRaceScreenState extends State<AceRaceScreen> {
       ],
     ),
   ),
+      ),
       ),
     );
   }

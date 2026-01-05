@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/game.dart';
+import '../theme/app_theme.dart';
 import 'payment_screen.dart';
 
 class SlotsScreen extends StatefulWidget {
@@ -24,9 +25,12 @@ class _SlotsScreenState extends State<SlotsScreen> {
   late int balance;
   String _username = '';
   final Random _rnd = Random();
-  final List<String> _symbols = ['🍒', '🍋', '7️⃣', '🍊', '⭐'];
+  final List<String> _symbols = ['🍒', '🍋', '7️⃣', '🍊', '⭐', '💎', '🔔'];
   List<String> reels = ['', '', ''];
   bool spinning = false;
+  int betAmount = 10;
+  int totalWins = 0;
+  int totalSpins = 0;
 
   @override
   void initState() {
@@ -49,18 +53,30 @@ class _SlotsScreenState extends State<SlotsScreen> {
   }
 
   Future<void> _spin() async {
-    if (spinning) return;
-    setState(() => spinning = true);
+    if (spinning || balance < betAmount) {
+      if (balance < betAmount) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Niet genoeg chips!')),
+        );
+      }
+      return;
+    }
+    
+    setState(() {
+      spinning = true;
+      balance -= betAmount;
+      totalSpins++;
+    });
 
     // quick animation: update reels several times
-    for (var i = 0; i < 12; i++) {
+    for (var i = 0; i < 15; i++) {
       setState(() {
         reels = List.generate(
           3,
           (_) => _symbols[_rnd.nextInt(_symbols.length)],
         );
       });
-      await Future.delayed(Duration(milliseconds: 80 + i * 5));
+      await Future.delayed(Duration(milliseconds: 80 + i * 8));
     }
 
     // compute result
@@ -68,18 +84,34 @@ class _SlotsScreenState extends State<SlotsScreen> {
     final b = reels[1];
     final c = reels[2];
 
-    int delta = -10; // default lose
-    String message = 'You lost 10 chips';
+    int winAmount = 0;
+    String message = 'Verloren!';
+    
+    // Check for wins
     if (a == b && b == c) {
-      delta = 100;
-      message = 'JACKPOT! +100 chips';
+      // 3 of a kind
+      if (a == '💎') {
+        winAmount = betAmount * 50;
+        message = '💎 MEGA JACKPOT! +${winAmount} chips! 💎';
+      } else if (a == '7️⃣') {
+        winAmount = betAmount * 25;
+        message = '🎰 JACKPOT! +${winAmount} chips! 🎰';
+      } else {
+        winAmount = betAmount * 10;
+        message = '⭐ Triple! +${winAmount} chips! ⭐';
+      }
     } else if (a == b || b == c || a == c) {
-      delta = 20;
-      message = '+20 chips';
+      // Any pair
+      winAmount = betAmount * 2;
+      message = '✅ Paar! +${winAmount} chips!';
+    }
+
+    if (winAmount > 0) {
+      totalWins++;
     }
 
     setState(() {
-      balance += delta;
+      balance += winAmount;
       spinning = false;
     });
 
@@ -92,22 +124,55 @@ class _SlotsScreenState extends State<SlotsScreen> {
 
     ScaffoldMessenger.of(
       context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    ).showSnackBar(SnackBar(
+      content: Text(message),
+      backgroundColor: winAmount > 0 ? AppTheme.success : AppTheme.danger,
+      duration: const Duration(seconds: 2),
+    ));
+  }
+
+  Widget _buildPayoutRow(String combo, int payout) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            combo,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: AppTheme.success,
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Text(
+              '$payout chips',
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final headerBg = const Color(0xFFBDBDB0);
-    final cardBg = const Color(0xFFE0E0E0);
-    final chipYellow = const Color(0xFFF4D03F);
-
     return WillPopScope(
       onWillPop: () async {
         Navigator.of(context).pop(balance);
         return false;
       },
       child: Scaffold(
-        backgroundColor: Colors.white,
+        backgroundColor: AppTheme.background,
         appBar: AppBar(title: Text(widget.game.title)),
         body: SafeArea(
           child: Padding(
@@ -122,8 +187,15 @@ class _SlotsScreenState extends State<SlotsScreen> {
                     vertical: 12,
                   ),
                   decoration: BoxDecoration(
-                    color: headerBg,
+                    color: AppTheme.cardBg,
                     borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
                   ),
                   child: Row(
                     children: [
@@ -133,7 +205,7 @@ class _SlotsScreenState extends State<SlotsScreen> {
                           style: const TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.w700,
-                            color: Colors.black,
+                            color: AppTheme.textDark,
                           ),
                         ),
                       ),
@@ -160,7 +232,7 @@ class _SlotsScreenState extends State<SlotsScreen> {
                             vertical: 8,
                           ),
                           decoration: BoxDecoration(
-                            color: chipYellow,
+                            color: AppTheme.accent,
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: Column(
@@ -170,14 +242,14 @@ class _SlotsScreenState extends State<SlotsScreen> {
                                 'Chips',
                                 style: TextStyle(
                                   fontWeight: FontWeight.w700,
-                                  color: Colors.black,
+                                  color: AppTheme.textDark,
                                 ),
                               ),
                               Text(
                                 '$balance',
                                 style: const TextStyle(
                                   fontWeight: FontWeight.w600,
-                                  color: Colors.black,
+                                  color: AppTheme.textDark,
                                 ),
                               ),
                             ],
@@ -188,71 +260,239 @@ class _SlotsScreenState extends State<SlotsScreen> {
                   ),
                 ),
 
-                const SizedBox(height: 24),
+                const SizedBox(height: 16),
 
                 // Slots area
-                Container(
-                  padding: const EdgeInsets.all(18),
-                  decoration: BoxDecoration(
-                    color: cardBg,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Column(
-                    children: [
-                      Text(
-                        widget.game.description,
-                        style: const TextStyle(color: Colors.black),
+                Expanded(
+                  child: SingleChildScrollView(
+                    child: Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: AppTheme.cardBg,
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.1),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 18),
-
-                      // reels
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                      // Stats row
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: reels
-                            .map(
-                              (s) => Container(
-                                width: 70,
-                                height: 70,
-                                alignment: Alignment.center,
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(8),
+                        children: [
+                          _buildStatColumn('Spins', '$totalSpins', AppTheme.textDark),
+                          _buildStatColumn('Wins', '$totalWins', AppTheme.success),
+                          _buildStatColumn('Win%', totalSpins > 0 ? '${((totalWins / totalSpins) * 100).toStringAsFixed(0)}%' : '0%', AppTheme.primary),
+                        ],
+                      ),
+                      
+                      const SizedBox(height: 20),
+
+                      // reels - 3 reels
+                      Container(
+                        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [AppTheme.primary, Colors.blue.shade900],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.3),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: reels
+                              .map(
+                                (s) => Container(
+                                  width: 70,
+                                  height: 80,
+                                  alignment: Alignment.center,
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(
+                                      color: AppTheme.accent,
+                                      width: 2,
+                                    ),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.2),
+                                        blurRadius: 3,
+                                        offset: const Offset(0, 2),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Text(
+                                    s,
+                                    style: const TextStyle(fontSize: 36),
+                                  ),
                                 ),
-                                child: Text(
-                                  s,
-                                  style: const TextStyle(fontSize: 30),
-                                ),
-                              ),
-                            )
-                            .toList(),
+                              )
+                              .toList(),
+                        ),
                       ),
 
                       const SizedBox(height: 20),
 
+                      // Bet amount selector
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: AppTheme.cardBg,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: AppTheme.accent, width: 2),
+                        ),
+                        child: Column(
+                          children: [
+                            const Text(
+                              'Inzet per spin',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: AppTheme.textDark,
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            Wrap(
+                              spacing: 6,
+                              alignment: WrapAlignment.center,
+                              children: [10, 25, 50, 100].map((amount) {
+                                final isSelected = betAmount == amount;
+                                return ElevatedButton(
+                                  onPressed: spinning ? null : () {
+                                    setState(() => betAmount = amount);
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: isSelected ? AppTheme.accent : Colors.grey.shade300,
+                                    foregroundColor: isSelected ? AppTheme.textDark : Colors.black54,
+                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                                    elevation: isSelected ? 6 : 2,
+                                    minimumSize: const Size(60, 36),
+                                  ),
+                                  child: Text(
+                                    '$amount',
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                );
+                              }).toList(),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      const SizedBox(height: 16),
+
                       ElevatedButton(
                         onPressed: spinning ? null : _spin,
                         style: ElevatedButton.styleFrom(
-                          elevation: 10,
+                          elevation: 8,
                           shadowColor: Colors.black45,
-                          backgroundColor: Colors.black87,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+                          backgroundColor: AppTheme.accent,
+                          foregroundColor: AppTheme.textDark,
+                          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 40),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                         ),
                         child: Text(
-                          spinning ? 'Spinning...' : 'SPIN',
-                          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+                          spinning ? 'SPINNING...' : '🎰 SPIN 🎰',
+                          style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 1.5,
+                          ),
                         ),
                       ),
-                    ],
+                      
+                      const SizedBox(height: 16),
+                      
+                      // Paytable info
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [Colors.amber.shade100, Colors.yellow.shade50],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: AppTheme.accent, width: 2),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppTheme.accent.withOpacity(0.2),
+                              blurRadius: 6,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          children: [
+                            const Text(
+                              '💰 UITBETALINGEN 💰',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w900,
+                                color: AppTheme.textDark,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                            const Divider(thickness: 2, color: AppTheme.accent, height: 12),
+                            _buildPayoutRow('💎💎💎', betAmount * 50),
+                            _buildPayoutRow('7️⃣7️⃣7️⃣', betAmount * 25),
+                            _buildPayoutRow('🍒🍒🍒', betAmount * 10),
+                            _buildPayoutRow('🍋🍋', betAmount * 2),
+                          ],
+                        ),
+                      ),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
 
-                const Spacer(),
+                const SizedBox(height: 16),
               ],
             ),
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildStatColumn(String label, String value, Color color) {
+    return Column(
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 11,
+            color: Colors.grey,
+          ),
+        ),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: color,
+          ),
+        ),
+      ],
     );
   }
 }

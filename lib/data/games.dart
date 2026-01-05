@@ -6,7 +6,6 @@ final List<Game> games = [
     title: 'Slots',
     description: 'Spin the reels and win chips.',
   ),
-  Game(id: 'blackjack', title: 'Blackjack', description: 'Beat the dealer.'),
   Game(
     id: 'roulette',
     title: 'Roulette',
@@ -14,7 +13,7 @@ final List<Game> games = [
   ),
   Game(
     id: 'ace_race',
-    title: '🏇 Horse Racing',
+    title: 'Horse Racing',
     description: 'Zet in op je favoriete paard en win!',
   ),
 ];

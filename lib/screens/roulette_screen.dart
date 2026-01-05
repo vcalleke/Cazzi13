@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/game.dart';
+import '../theme/app_theme.dart';
 import 'payment_screen.dart';
 
 class RouletteScreen extends StatefulWidget {
@@ -265,10 +266,6 @@ class _RouletteScreenState extends State<RouletteScreen>
 
   @override
   Widget build(BuildContext context) {
-    const headerBg = Color(0xFFBDBDB0);
-    const cardBg = Color(0xFFE0E0E0);
-    const chipYellow = Color(0xFFF4D03F);
-
     return WillPopScope(
       onWillPop: () async {
         Navigator.of(context).pop(balance);
@@ -276,7 +273,7 @@ class _RouletteScreenState extends State<RouletteScreen>
       },
       child: Scaffold(
         appBar: AppBar(title: Text(widget.game.title)),
-        backgroundColor: Colors.white,
+        backgroundColor: AppTheme.background,
         body: SafeArea(
           child: Padding(
             padding: const EdgeInsets.all(14.0),
@@ -291,8 +288,15 @@ class _RouletteScreenState extends State<RouletteScreen>
                       vertical: 12,
                     ),
                     decoration: BoxDecoration(
-                      color: headerBg,
+                      color: AppTheme.cardBg,
                       borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.1),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
                     ),
                     child: Row(
                       children: [
@@ -302,7 +306,7 @@ class _RouletteScreenState extends State<RouletteScreen>
                             style: const TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.w700,
-                              color: Colors.black,
+                              color: AppTheme.textDark,
                             ),
                           ),
                         ),
@@ -329,7 +333,7 @@ class _RouletteScreenState extends State<RouletteScreen>
                               vertical: 8,
                             ),
                             decoration: BoxDecoration(
-                              color: chipYellow,
+                              color: AppTheme.accent,
                               borderRadius: BorderRadius.circular(10),
                             ),
                             child: Column(
@@ -339,14 +343,14 @@ class _RouletteScreenState extends State<RouletteScreen>
                                   'Chips',
                                   style: TextStyle(
                                     fontWeight: FontWeight.w700,
-                                    color: Colors.black,
+                                    color: AppTheme.textDark,
                                   ),
                                 ),
                                 Text(
                                   '$balance',
                                   style: const TextStyle(
                                     fontWeight: FontWeight.w600,
-                                    color: Colors.black,
+                                    color: AppTheme.textDark,
                                   ),
                                 ),
                               ],
@@ -369,7 +373,7 @@ class _RouletteScreenState extends State<RouletteScreen>
                         Container(
                           padding: const EdgeInsets.all(18),
                           decoration: BoxDecoration(
-                            color: cardBg,
+                            color: AppTheme.cardBg,
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Column(
@@ -540,7 +544,7 @@ class _RouletteScreenState extends State<RouletteScreen>
                                             ),
                                           ),
                                           const SizedBox(height: 10),
-                                          ElevatedButton(onPressed: _spinning ? null : _addBet, style: ElevatedButton.styleFrom(backgroundColor: chipYellow, foregroundColor: Colors.black, padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12)), child: const Text('Voeg deze bet toe')),
+                                          ElevatedButton(onPressed: _spinning ? null : _addBet, style: ElevatedButton.styleFrom(backgroundColor: AppTheme.accent, foregroundColor: AppTheme.textDark, padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12)), child: const Text('Voeg deze bet toe')),
                                         ],
                                       ),
                                     ),
@@ -566,7 +570,7 @@ class _RouletteScreenState extends State<RouletteScreen>
                             ),
                           ),
                         const SizedBox(height: 12),
-                        ElevatedButton(onPressed: _spinning ? null : _spin, style: ElevatedButton.styleFrom(elevation: 10, shadowColor: Colors.black45, backgroundColor: chipYellow, foregroundColor: Colors.black, padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 40)), child: Text(_spinning ? 'Spinning...' : 'SPIN', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700))),
+                        ElevatedButton(onPressed: _spinning ? null : _spin, style: ElevatedButton.styleFrom(elevation: 10, shadowColor: Colors.black45, backgroundColor: AppTheme.accent, foregroundColor: AppTheme.textDark, padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 40)), child: Text(_spinning ? 'Spinning...' : 'SPIN', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700))),
                         const SizedBox(height: 8),
                         Text(_targetIndex == null ? 'Kies kleur, even/oneven of nummer + inzet en druk op SPIN' : 'Laatste: ${_targetIndex! + 1} — ${_colorLabel(_colorForIndex(_targetIndex!))} / ${_parityLabel(_parityForIndex(_targetIndex!))}', style: const TextStyle(color: Colors.black)),
                       ],
