@@ -24,7 +24,7 @@ class SlotsScreen extends StatefulWidget {
 class _SlotsScreenState extends State<SlotsScreen> {
   late int balance;
   String _username = '';
-  final Random _rnd = Random();
+  final random = Random();
   final List<String> _symbols = ['🍒', '🍋', '7️⃣', '🍊', '⭐', '💎', '🔔'];
   List<String> reels = ['', '', ''];
   bool spinning = false;
@@ -36,7 +36,7 @@ class _SlotsScreenState extends State<SlotsScreen> {
   void initState() {
     super.initState();
     balance = widget.startBalance;
-    reels = List.generate(3, (_) => _symbols[_rnd.nextInt(_symbols.length)]);
+    reels = List.generate(3, (_) => _symbols[random.nextInt(_symbols.length)]);
     _loadUsername();
   }
 
@@ -68,18 +68,13 @@ class _SlotsScreenState extends State<SlotsScreen> {
       totalSpins++;
     });
 
-    // quick animation: update reels several times
     for (var i = 0; i < 15; i++) {
       setState(() {
-        reels = List.generate(
-          3,
-          (_) => _symbols[_rnd.nextInt(_symbols.length)],
-        );
+        reels = List.generate(3, (_) => _symbols[random.nextInt(_symbols.length)]);
       });
       await Future.delayed(Duration(milliseconds: 80 + i * 8));
     }
 
-    // compute result
     final a = reels[0];
     final b = reels[1];
     final c = reels[2];
@@ -87,9 +82,7 @@ class _SlotsScreenState extends State<SlotsScreen> {
     int winAmount = 0;
     String message = 'Verloren!';
     
-    // Check for wins
     if (a == b && b == c) {
-      // 3 of a kind
       if (a == '💎') {
         winAmount = betAmount * 50;
         message = '💎 MEGA JACKPOT! +${winAmount} chips! 💎';
@@ -101,7 +94,6 @@ class _SlotsScreenState extends State<SlotsScreen> {
         message = '⭐ Triple! +${winAmount} chips! ⭐';
       }
     } else if (a == b || b == c || a == c) {
-      // Any pair
       winAmount = betAmount * 2;
       message = '✅ Paar! +${winAmount} chips!';
     }
@@ -115,7 +107,6 @@ class _SlotsScreenState extends State<SlotsScreen> {
       spinning = false;
     });
 
-    // persist balance for this player
     try {
       final prefs = await SharedPreferences.getInstance();
       final key = 'balance_${_username.isEmpty ? 'guest' : _username}';
@@ -180,7 +171,6 @@ class _SlotsScreenState extends State<SlotsScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Header similar to home
                 Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 14,

@@ -25,7 +25,7 @@ class _AceRaceScreenState extends State<AceRaceScreen> {
   String message = '';
   String commentary = '';
   bool racing = false;
-  final Random _rand = Random();
+  final rng = Random();
   DateTime? _lastCommentaryTime;
 
   @override
@@ -83,10 +83,9 @@ class _AceRaceScreenState extends State<AceRaceScreen> {
       bool hasWinner = false;
       
       setState(() {
-        // Elk paard beweegt 1-3 vakjes
         Map<String, int> moves = {};
         for (var h in horses) {
-          final move = _rand.nextInt(3) + 1; // 1, 2, of 3
+          final move = rng.nextInt(3) + 1;
           moves[h] = move;
           positions[h] = (positions[h] ?? 0) + move;
           
@@ -152,7 +151,7 @@ class _AceRaceScreenState extends State<AceRaceScreen> {
       }
     }
     
-    return commentaries[_rand.nextInt(commentaries.length)];
+    return commentaries[rng.nextInt(commentaries.length)];
   }
 
   void _resetRace() {

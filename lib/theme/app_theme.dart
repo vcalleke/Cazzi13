@@ -1,15 +1,14 @@
 import 'package:flutter/material.dart';
 
 class AppTheme {
-  // Elegant color scheme: Midnight blue, gold, and cream
-  static const Color background = Color(0xFFF8F6F0); // warm cream
-  static const Color primary = Color(0xFF2C3E50); // midnight blue
-  static const Color accent = Color(0xFFD4AF37); // rich gold
-  static const Color cardBg = Color(0xFFFFFFFF); // white cards
-  static const Color textDark = Color(0xFF212121); // dark text
-  static const Color textLight = Color(0xFFFFFFFF); // light text
-  static const Color success = Color(0xFF27AE60); // emerald green
-  static const Color danger = Color(0xFFE74C3C); // soft red
+  static const Color background = Color(0xFFF8F6F0);
+  static const Color primary = Color(0xFF2C3E50);
+  static const Color accent = Color(0xFFD4AF37);
+  static const Color cardBg = Color(0xFFFFFFFF);
+  static const Color textDark = Color(0xFF212121);
+  static const Color textLight = Color(0xFFFFFFFF);
+  static const Color success = Color(0xFF27AE60);
+  static const Color danger = Color(0xFFE74C3C);
 
   static ThemeData get theme {
     return ThemeData(

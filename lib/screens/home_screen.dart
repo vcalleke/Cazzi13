@@ -17,7 +17,7 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  int balance = 1000; // initial chips/credits
+  int balance = 1000;
   String _username = '';
 
   @override
@@ -53,7 +53,6 @@ class _HomeScreenState extends State<HomeScreen> {
           padding: const EdgeInsets.all(14.0),
           child: Column(
             children: [
-              // Top header with username and chips pill
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(
@@ -73,10 +72,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 child: Row(
                   children: [
-                    // Username text left
-                    Expanded(
-                      child: Text(
-                        _username.isEmpty ? 'Player' : _username,
+                    Expanded(child: Text(_username.isEmpty ? 'Player' : _username,
                         style: const TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.w700,
@@ -84,8 +80,6 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       ),
                     ),
-
-                    // Chips amount pill on right
                     GestureDetector(
                       onTap: () async {
                         final result = await Navigator.of(context).push(
@@ -136,8 +130,6 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
 
               const SizedBox(height: 20),
-
-              // Centered title
               const Text(
                 'Games',
                 style: TextStyle(
@@ -148,8 +140,6 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
 
               const SizedBox(height: 14),
-
-              // Game list
               Expanded(
                 child: ListView.builder(
                   itemCount: games.length,

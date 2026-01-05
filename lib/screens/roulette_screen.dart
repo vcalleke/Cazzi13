@@ -25,10 +25,9 @@ class _RouletteScreenState extends State<RouletteScreen>
     with SingleTickerProviderStateMixin {
   late int balance;
   String _username = '';
-  final _rnd = Random();
+  final rng = Random();
 
-  // Wheel
-  static const int _segments = 36; // simple 36-segment wheel (no zero)
+  static const int _segments = 36;
   late final AnimationController _controller;
   Animation<double>? _animation;
   double _rotation = 0.0; // radians
@@ -156,7 +155,7 @@ class _RouletteScreenState extends State<RouletteScreen>
 
     setState(() {
       _spinning = true;
-      _targetIndex = _rnd.nextInt(_segments);
+      _targetIndex = rng.nextInt(_segments);
     });
 
     _animation = Tween<double>(begin: 0, end: (2 * pi * 5) + (_targetIndex! * (2 * pi / _segments))).animate(
@@ -280,7 +279,6 @@ class _RouletteScreenState extends State<RouletteScreen>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Header with balance (hidden during spin)
                 if (!_spinning) ...[
                   Container(
                     padding: const EdgeInsets.symmetric(
