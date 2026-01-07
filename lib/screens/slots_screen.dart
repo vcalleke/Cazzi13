@@ -85,17 +85,17 @@ class _SlotsScreenState extends State<SlotsScreen> {
     if (a == b && b == c) {
       if (a == '💎') {
         winAmount = betAmount * 50;
-        message = '💎 MEGA JACKPOT! +${winAmount} chips! 💎';
+        message = '💎 MEGA JACKPOT! +$winAmount chips! 💎';
       } else if (a == '7️⃣') {
         winAmount = betAmount * 25;
-        message = '🎰 JACKPOT! +${winAmount} chips! 🎰';
+        message = '🎰 JACKPOT! +$winAmount chips! 🎰';
       } else {
         winAmount = betAmount * 10;
-        message = '⭐ Triple! +${winAmount} chips! ⭐';
+        message = '⭐ Triple! +$winAmount chips! ⭐';
       }
     } else if (a == b || b == c || a == c) {
       winAmount = betAmount * 2;
-      message = '✅ Paar! +${winAmount} chips!';
+      message = '✅ Paar! +$winAmount chips!';
     }
 
     if (winAmount > 0) {
@@ -113,6 +113,7 @@ class _SlotsScreenState extends State<SlotsScreen> {
       await prefs.setInt(key, balance);
     } catch (_) {}
 
+    if (!mounted) return;
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(
@@ -157,10 +158,12 @@ class _SlotsScreenState extends State<SlotsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: () async {
-        Navigator.of(context).pop(balance);
-        return false;
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop) {
+          Navigator.of(context).pop(balance);
+        }
       },
       child: Scaffold(
         backgroundColor: AppTheme.background,
@@ -181,7 +184,7 @@ class _SlotsScreenState extends State<SlotsScreen> {
                     borderRadius: BorderRadius.circular(12),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
+                        color: Colors.black.withValues(alpha: 0.1),
                         blurRadius: 8,
                         offset: const Offset(0, 2),
                       ),
@@ -262,7 +265,7 @@ class _SlotsScreenState extends State<SlotsScreen> {
                         borderRadius: BorderRadius.circular(12),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
+                            color: Colors.black.withValues(alpha: 0.1),
                             blurRadius: 8,
                             offset: const Offset(0, 2),
                           ),
@@ -295,7 +298,7 @@ class _SlotsScreenState extends State<SlotsScreen> {
                           borderRadius: BorderRadius.circular(12),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.3),
+                              color: Colors.black.withValues(alpha: 0.3),
                               blurRadius: 10,
                               offset: const Offset(0, 4),
                             ),
@@ -318,7 +321,7 @@ class _SlotsScreenState extends State<SlotsScreen> {
                                     ),
                                     boxShadow: [
                                       BoxShadow(
-                                        color: Colors.black.withOpacity(0.2),
+                                        color: Colors.black.withValues(alpha: 0.2),
                                         blurRadius: 3,
                                         offset: const Offset(0, 2),
                                       ),
@@ -424,7 +427,7 @@ class _SlotsScreenState extends State<SlotsScreen> {
                           border: Border.all(color: AppTheme.accent, width: 2),
                           boxShadow: [
                             BoxShadow(
-                              color: AppTheme.accent.withOpacity(0.2),
+                              color: AppTheme.accent.withValues(alpha: 0.2),
                               blurRadius: 6,
                               offset: const Offset(0, 2),
                             ),
