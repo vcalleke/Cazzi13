@@ -52,9 +52,12 @@ class _SlotsScreenState extends State<SlotsScreen> {
     });
   }
 
+  //=================================================================================
   Future<void> _spin() async {
+    // kan niet spinnen als we al spinnen of te weinig chips hebbe
     if (spinning || balance < betAmount) {
       if (balance < betAmount) {
+        // feedback aan de gebruiker
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(const SnackBar(content: Text('Niet genoeg chips!')));
@@ -63,11 +66,12 @@ class _SlotsScreenState extends State<SlotsScreen> {
     }
 
     setState(() {
-      spinning = true;
-      balance -= betAmount;
-      totalSpins++;
+      spinning = true; // voorkomt dubbel klikken
+      balance -= betAmount; // inzet gaat meteen van de balans
+      totalSpins++; // totaal aantal spins verhoogt
     });
 
+    // aniatie van de reels
     for (var i = 0; i < 15; i++) {
       setState(() {
         reels = List.generate(
@@ -78,6 +82,7 @@ class _SlotsScreenState extends State<SlotsScreen> {
       await Future.delayed(Duration(milliseconds: 80 + i * 8));
     }
 
+    // bepaalt de uitkomst
     final a = reels[0];
     final b = reels[1];
     final c = reels[2];
@@ -85,6 +90,7 @@ class _SlotsScreenState extends State<SlotsScreen> {
     int winAmount = 0;
     String message = 'Verloren!';
 
+    // bepaalt de winst
     if (a == b && b == c) {
       if (a == '💎') {
         winAmount = betAmount * 50;
@@ -101,21 +107,25 @@ class _SlotsScreenState extends State<SlotsScreen> {
       message = '✅ Paar! +$winAmount chips!';
     }
 
+    // win verhogen als er is gewonnen
     if (winAmount > 0) {
       totalWins++;
     }
 
+    // win toevoegen aan balans en opslaan
     setState(() {
       balance += winAmount;
       spinning = false;
     });
 
+    // balans opslaan
     try {
       final prefs = await SharedPreferences.getInstance();
       final key = 'balance_${_username.isEmpty ? 'guest' : _username}';
       await prefs.setInt(key, balance);
-    } catch (_) {}
+    } catch (_) {} // fout bij opslaan negeren zodat we niet crashen
 
+    // resultaat tonen na de spin
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
