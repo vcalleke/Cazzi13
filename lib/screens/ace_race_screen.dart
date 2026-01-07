@@ -7,7 +7,7 @@ import 'payment_screen.dart';
 
 class AceRaceScreen extends StatefulWidget {
   final int startBalance;
-  
+
   const AceRaceScreen({super.key, required this.startBalance});
 
   @override
@@ -16,17 +16,24 @@ class AceRaceScreen extends StatefulWidget {
 
 class _AceRaceScreenState extends State<AceRaceScreen> {
   // deel een presentatie
-  static const horses = ['⚡ White Lightning', '⚫ Blackthunder', '🌿 Green Blaze', '🔥 Pablo'];
+  static const horses = [
+    '⚡ White Lightning',
+    '⚫ Blackthunder',
+    '🌿 Green Blaze',
+    '🔥 Pablo',
+  ];
   static const finishLine = 35; // afstand tot finish line
-  final Map<String, int> positions = {for (var h in horses) h: 0}; // start posities op 0 zetten
-  String? selectedHorse; 
+  final Map<String, int> positions = {
+    for (var h in horses) h: 0,
+  }; // start posities op 0 zetten
+  String? selectedHorse;
   int bet = 10;
   int balance = 0;
   String _username = '';
   String message = '';
   String commentary = '';
   bool racing = false; //zijn we aan het racen?
-  final rng = Random(); 
+  final rng = Random();
   DateTime? _lastCommentaryTime;
 
   @override
@@ -64,7 +71,7 @@ class _AceRaceScreenState extends State<AceRaceScreen> {
       setState(() => message = 'Niet genoeg chips! Je hebt $balance chips.');
       return;
     }
-//Deel 3 ---------------------------------------------------------------------------------------------------------------------------------
+    //Deel 3 ---------------------------------------------------------------------------------------------------------------------------------
     // Trek inzet af aan het begin
     setState(() {
       racing = true; //past status aan
@@ -74,45 +81,52 @@ class _AceRaceScreenState extends State<AceRaceScreen> {
       message = 'De race is begonnen!';
       commentary = '🏁 En ze zijn weg!';
     });
-    
+
     await _saveBalance(); // Save immediately after deducting bet
 
-    // Race loop Deel 4 --------------------------------------------------------------------------------------------------------------------------------- 
+    // Race loop Deel 4 ---------------------------------------------------------------------------------------------------------------------------------
     while (true) {
       await Future.delayed(const Duration(milliseconds: 1000));
-      
+
       bool hasWinner = false; //checkt voor winnar
-      
+
       setState(() {
         Map<String, int> moves = {};
         for (var h in horses) {
           final move = rng.nextInt(3) + 1;
           moves[h] = move;
-          positions[h] = (positions[h] ?? 0) + move; //doet voor elk horse een move 1-3 en update die positie
-          
+          positions[h] =
+              (positions[h] ?? 0) +
+              move; //doet voor elk horse een move 1-3 en update die positie
+
           if (positions[h]! >= finishLine) {
             hasWinner = true; //check for winner
           }
         }
-        
-        // Commentaar elke 4.5 seconden
-        if (_lastCommentaryTime != null && 
-            DateTime.now().difference(_lastCommentaryTime!).inMilliseconds >= 4500) {
+
+        // Commentaar elke 4.5 seconden oo
+        if (_lastCommentaryTime != null &&
+            DateTime.now().difference(_lastCommentaryTime!).inMilliseconds >=
+                4500) {
           commentary = _generateCommentary(moves);
-          _lastCommentaryTime = DateTime.now();  // als de tijd (4.5 sec) is verstreken, update commentaarS
+          _lastCommentaryTime =
+              DateTime.now(); // als de tijd (4.5 sec) is verstreken, update commentaarS
         }
       });
 
       if (hasWinner) {
         // Find winner (highest position)
-        final winner = positions.entries.reduce((a, b) => a.value > b.value ? a : b).key;
-        
+        final winner = positions.entries
+            .reduce((a, b) => a.value > b.value ? a : b)
+            .key;
+
         final won = winner == selectedHorse; //true als speler heeft gewonnen
         setState(() {
           racing = false;
           if (won) {
             // Add winnings (bet was already deducted, so add total payout)
-            balance += bet * 4; // 4x because bet was already deducted, so net is 4x 
+            balance +=
+                bet * 4; // 4x because bet was already deducted, so net is 4x
           }
           // If lost, bet was already deducted, so do nothing
           message = won
@@ -125,15 +139,15 @@ class _AceRaceScreenState extends State<AceRaceScreen> {
       }
     }
   }
-  
+
   String _generateCommentary(Map<String, int> moves) {
     // Sorteer paarden op positie
     final sorted = positions.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
-    
+
     final leader = sorted[0].key;
     final lastPlace = sorted[3].key;
-    
+
     final commentaries = [
       '💨 $leader is aan de leiding!',
       '🔥 $leader neemt de kop!',
@@ -144,14 +158,14 @@ class _AceRaceScreenState extends State<AceRaceScreen> {
       '💪 ${sorted[1].key} probeert in te halen!',
       '🎯 $leader houdt de leiding vast!',
     ];
-    
+
     // Extra commentaar voor grote sprongen
     for (var entry in moves.entries) {
       if (entry.value == 3) {
         return '🚀 ${entry.key} maakt een enorme sprong!';
       }
     }
-    
+
     return commentaries[rng.nextInt(commentaries.length)];
   }
 
@@ -169,7 +183,7 @@ class _AceRaceScreenState extends State<AceRaceScreen> {
   Widget _buildLane(String horse) {
     final pos = positions[horse] ?? 0;
     final progress = (pos / finishLine).clamp(0.0, 1.0);
-    
+
     // Different colors for each horse
     Color laneColor;
     if (horse.contains('White')) {
@@ -181,7 +195,7 @@ class _AceRaceScreenState extends State<AceRaceScreen> {
     } else {
       laneColor = Colors.orange.shade100;
     }
-    
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: Column(
@@ -192,10 +206,14 @@ class _AceRaceScreenState extends State<AceRaceScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: selectedHorse == horse ? Colors.amber.shade400 : Colors.grey.shade200,
+                  color: selectedHorse == horse
+                      ? Colors.amber.shade400
+                      : Colors.grey.shade200,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: selectedHorse == horse ? Colors.amber.shade700 : Colors.grey.shade400,
+                    color: selectedHorse == horse
+                        ? Colors.amber.shade700
+                        : Colors.grey.shade400,
                     width: 2,
                   ),
                 ),
@@ -204,7 +222,9 @@ class _AceRaceScreenState extends State<AceRaceScreen> {
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 15,
-                    color: selectedHorse == horse ? Colors.black : Colors.black87,
+                    color: selectedHorse == horse
+                        ? Colors.black
+                        : Colors.black87,
                   ),
                 ),
               ),
@@ -218,7 +238,10 @@ class _AceRaceScreenState extends State<AceRaceScreen> {
                 ),
                 child: Text(
                   '$pos/$finishLine',
-                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
             ],
@@ -264,10 +287,7 @@ class _AceRaceScreenState extends State<AceRaceScreen> {
                   height: 50,
                   alignment: Alignment.centerRight,
                   padding: const EdgeInsets.only(right: 6),
-                  child: const Text(
-                    '🏇',
-                    style: TextStyle(fontSize: 32),
-                  ),
+                  child: const Text('🏇', style: TextStyle(fontSize: 32)),
                 ),
               ),
               // Finish line
@@ -313,226 +333,257 @@ class _AceRaceScreenState extends State<AceRaceScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-              // Header with balance
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 12,
-                ),
-                decoration: BoxDecoration(
-                  color: headerBg,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        _username.isEmpty ? 'Player' : _username,
-                        style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.black,
+                // Header with balance
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 12,
+                  ),
+                  decoration: BoxDecoration(
+                    color: headerBg,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          _username.isEmpty ? 'Player' : _username,
+                          style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.black,
+                          ),
                         ),
                       ),
-                    ),
-                    GestureDetector(
-                      onTap: () async {
-                        final result = await Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (context) => PaymentScreen(
-                              currentBalance: balance,
-                              username: _username,
-                            ),
-                          ),
-                        );
-                        if (result != null) {
-                          setState(() => balance = result);
-                          await _saveBalance();
-                        }
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 8,
-                        ),
-                        decoration: BoxDecoration(
-                          color: chipYellow,
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Text(
-                              'Chips',
-                              style: TextStyle(
-                                fontWeight: FontWeight.w700,
-                                color: Colors.black,
+                      GestureDetector(
+                        onTap: () async {
+                          final result = await Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (context) => PaymentScreen(
+                                currentBalance: balance,
+                                username: _username,
                               ),
                             ),
+                          );
+                          if (result != null) {
+                            setState(() => balance = result);
+                            await _saveBalance();
+                          }
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
+                          decoration: BoxDecoration(
+                            color: chipYellow,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Text(
+                                'Chips',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.black,
+                                ),
+                              ),
+                              Text(
+                                '$balance',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.black,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+                // Main content
+                Expanded(
+                  child: SingleChildScrollView(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        const Text(
+                          'Kies je paard:',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Wrap(
+                          //Deel 2 uitleg pretensatie ---------------------------------------------------------------------------------------------
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: horses.map((h) {
+                            final isSelected = selectedHorse == h;
+                            return ChoiceChip(
+                              label: Text(h),
+                              selected: isSelected,
+                              labelStyle: const TextStyle(color: Colors.black),
+                              selectedColor: AppTheme.accent,
+                              backgroundColor: AppTheme.primary,
+                              visualDensity: VisualDensity.compact,
+                              onSelected: racing
+                                  ? null
+                                  : (_) => setState(
+                                      () => selectedHorse = h,
+                                    ), //zet een paard als geselecteerd
+                            );
+                          }).toList(),
+                        ),
+
+                        const SizedBox(height: 16),
+
+                        _buildLane(horses[0]),
+                        _buildLane(horses[1]),
+                        _buildLane(horses[2]),
+                        _buildLane(horses[3]),
+
+                        const SizedBox(height: 16),
+
+                        Row(
+                          children: [
+                            const Text(
+                              'Inzet:',
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Slider(
+                                value: bet.toDouble(),
+                                min: 10,
+                                max: 100,
+                                divisions: 9,
+                                activeColor: AppTheme.accent,
+                                label: bet.toString(),
+                                onChanged: racing
+                                    ? null
+                                    : (v) => setState(() => bet = v.toInt()),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
                             Text(
-                              '$balance',
+                              '$bet chips',
                               style: const TextStyle(
-                                fontWeight: FontWeight.w600,
-                                color: Colors.black,
+                                fontWeight: FontWeight.bold,
                               ),
                             ),
                           ],
                         ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 12),
-              // Main content
-              Expanded(
-                child: SingleChildScrollView(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      const Text(
-                        'Kies je paard:',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                      ),
-                const SizedBox(height: 8),
-                Wrap(
-                  //Deel 2 uitleg pretensatie ---------------------------------------------------------------------------------------------
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: horses.map((h) {
-                    final isSelected = selectedHorse == h;
-                    return ChoiceChip(
-                      label: Text(h),
-                      selected: isSelected,
-                      labelStyle: const TextStyle(color: Colors.black), 
-                      selectedColor: AppTheme.accent,
-                      backgroundColor: AppTheme.primary,
-                      visualDensity: VisualDensity.compact,
-                      onSelected: racing ? null : (_) => setState(() => selectedHorse = h), //zet een paard als geselecteerd
-                    );
-                  }).toList(),
-                ),
 
-                const SizedBox(height: 16),
+                        const SizedBox(height: 12),
 
-                _buildLane(horses[0]),
-                _buildLane(horses[1]),
-                _buildLane(horses[2]),
-                _buildLane(horses[3]),
-
-                const SizedBox(height: 16),
-
-                Row(
-                  children: [
-                    const Text('Inzet:', style: TextStyle(fontWeight: FontWeight.bold)),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Slider(
-                        value: bet.toDouble(),
-                        min: 10,
-                        max: 100,
-                        divisions: 9,
-                        activeColor: AppTheme.accent,
-                        label: bet.toString(),
-                        onChanged: racing ? null : (v) => setState(() => bet = v.toInt()),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Text('$bet chips', style: const TextStyle(fontWeight: FontWeight.bold)),
-                  ],
-                ),
-
-                const SizedBox(height: 12),
-                
-                if (commentary.isNotEmpty)
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    margin: const EdgeInsets.only(bottom: 8),
-                    decoration: BoxDecoration(
-                      color: Colors.orange.shade100,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.orange.shade300, width: 2),
-                    ),
-                    child: Row(
-                      children: [
-                        const Text('📢 ', style: TextStyle(fontSize: 18)),
-                        Expanded(
-                          child: Text(
-                            commentary,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 13,
+                        if (commentary.isNotEmpty)
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            margin: const EdgeInsets.only(bottom: 8),
+                            decoration: BoxDecoration(
+                              color: Colors.orange.shade100,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: Colors.orange.shade300,
+                                width: 2,
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                const Text(
+                                  '📢 ',
+                                  style: TextStyle(fontSize: 18),
+                                ),
+                                Expanded(
+                                  child: Text(
+                                    commentary,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
+
+                        if (message.isNotEmpty)
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: message.contains('Gewonnen')
+                                  ? Colors.green.shade100
+                                  : message.contains('Verloren')
+                                  ? Colors.red.shade100
+                                  : Colors.blue.shade100,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: message.contains('Gewonnen')
+                                    ? Colors.green
+                                    : message.contains('Verloren')
+                                    ? Colors.red
+                                    : Colors.blue,
+                                width: 2,
+                              ),
+                            ),
+                            child: Text(
+                              message,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: ElevatedButton(
+                                onPressed: racing ? null : _startRace,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppTheme.accent,
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 14,
+                                  ),
+                                ),
+                                child: Text(
+                                  racing ? 'Race bezig...' : '🏁 Start Race!',
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            ElevatedButton(
+                              onPressed: racing ? null : _resetRace,
+                              style: ElevatedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 14,
+                                  horizontal: 16,
+                                ),
+                              ),
+                              child: const Text('Reset'),
+                            ),
+                          ],
                         ),
+                        const SizedBox(height: 20),
                       ],
                     ),
                   ),
-                
-                if (message.isNotEmpty)
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: message.contains('Gewonnen') 
-                          ? Colors.green.shade100 
-                          : message.contains('Verloren')
-                              ? Colors.red.shade100
-                              : Colors.blue.shade100,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                        color: message.contains('Gewonnen')
-                            ? Colors.green
-                            : message.contains('Verloren')
-                                ? Colors.red
-                                : Colors.blue,
-                        width: 2,
-                      ),
-                    ),
-                    child: Text(
-                      message,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: racing ? null : _startRace,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppTheme.accent,
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                        ),
-                        child: Text(
-                          racing ? 'Race bezig...' : '🏁 Start Race!',
-                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    ElevatedButton(
-                      onPressed: racing ? null : _resetRace,
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
-                      ),
-                      child: const Text('Reset'),
-                    ),
-                  ],
                 ),
-                const SizedBox(height: 20),
               ],
             ),
           ),
         ),
-      ],
-    ),
-  ),
-      ),
       ),
     );
   }
