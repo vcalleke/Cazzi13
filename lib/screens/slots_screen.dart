@@ -6,7 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/game.dart';
 import '../theme/app_theme.dart';
 import 'payment_screen.dart';
-
+//iets mis met de merge
 class SlotsScreen extends StatefulWidget {
   final Game game;
   final int startBalance;
