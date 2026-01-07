@@ -6,7 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/game.dart';
 import '../theme/app_theme.dart';
 import 'payment_screen.dart';
-//iets mis met de merge
+
 class SlotsScreen extends StatefulWidget {
   final Game game;
   final int startBalance;
@@ -55,13 +55,13 @@ class _SlotsScreenState extends State<SlotsScreen> {
   Future<void> _spin() async {
     if (spinning || balance < betAmount) {
       if (balance < betAmount) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Niet genoeg chips!')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Niet genoeg chips!')));
       }
       return;
     }
-    
+
     setState(() {
       spinning = true;
       balance -= betAmount;
@@ -70,7 +70,10 @@ class _SlotsScreenState extends State<SlotsScreen> {
 
     for (var i = 0; i < 15; i++) {
       setState(() {
-        reels = List.generate(3, (_) => _symbols[random.nextInt(_symbols.length)]);
+        reels = List.generate(
+          3,
+          (_) => _symbols[random.nextInt(_symbols.length)],
+        );
       });
       await Future.delayed(Duration(milliseconds: 80 + i * 8));
     }
@@ -81,7 +84,7 @@ class _SlotsScreenState extends State<SlotsScreen> {
 
     int winAmount = 0;
     String message = 'Verloren!';
-    
+
     if (a == b && b == c) {
       if (a == '💎') {
         winAmount = betAmount * 50;
@@ -113,14 +116,13 @@ class _SlotsScreenState extends State<SlotsScreen> {
       await prefs.setInt(key, balance);
     } catch (_) {}
 
-    if (!mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(
-      content: Text(message),
-      backgroundColor: winAmount > 0 ? AppTheme.success : AppTheme.danger,
-      duration: const Duration(seconds: 2),
-    ));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: winAmount > 0 ? AppTheme.success : AppTheme.danger,
+        duration: const Duration(seconds: 2),
+      ),
+    );
   }
 
   Widget _buildPayoutRow(String combo, int payout) {
@@ -131,10 +133,7 @@ class _SlotsScreenState extends State<SlotsScreen> {
         children: [
           Text(
             combo,
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w700,
-            ),
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
           ),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -158,12 +157,10 @@ class _SlotsScreenState extends State<SlotsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return PopScope(
-      canPop: false,
-      onPopInvokedWithResult: (didPop, result) {
-        if (!didPop) {
-          Navigator.of(context).pop(balance);
-        }
+    return WillPopScope(
+      onWillPop: () async {
+        Navigator.of(context).pop(balance);
+        return false;
       },
       child: Scaffold(
         backgroundColor: AppTheme.background,
@@ -184,7 +181,7 @@ class _SlotsScreenState extends State<SlotsScreen> {
                     borderRadius: BorderRadius.circular(12),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.1),
+                        color: Colors.black.withOpacity(0.1),
                         blurRadius: 8,
                         offset: const Offset(0, 2),
                       ),
@@ -215,7 +212,8 @@ class _SlotsScreenState extends State<SlotsScreen> {
                           if (result != null) {
                             setState(() => balance = result);
                             final prefs = await SharedPreferences.getInstance();
-                            final key = 'balance_${_username.isEmpty ? 'guest' : _username}';
+                            final key =
+                                'balance_${_username.isEmpty ? 'guest' : _username}';
                             await prefs.setInt(key, balance);
                           }
                         },
@@ -265,7 +263,7 @@ class _SlotsScreenState extends State<SlotsScreen> {
                         borderRadius: BorderRadius.circular(12),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.1),
+                            color: Colors.black.withOpacity(0.1),
                             blurRadius: 8,
                             offset: const Offset(0, 2),
                           ),
@@ -274,184 +272,233 @@ class _SlotsScreenState extends State<SlotsScreen> {
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                      // Stats row
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          _buildStatColumn('Spins', '$totalSpins', AppTheme.textDark),
-                          _buildStatColumn('Wins', '$totalWins', AppTheme.success),
-                          _buildStatColumn('Win%', totalSpins > 0 ? '${((totalWins / totalSpins) * 100).toStringAsFixed(0)}%' : '0%', AppTheme.primary),
-                        ],
-                      ),
-                      
-                      const SizedBox(height: 20),
-
-                      // reels - 3 reels
-                      Container(
-                        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [AppTheme.primary, Colors.blue.shade900],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
+                          // Stats row
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            children: [
+                              _buildStatColumn(
+                                'Spins',
+                                '$totalSpins',
+                                AppTheme.textDark,
+                              ),
+                              _buildStatColumn(
+                                'Wins',
+                                '$totalWins',
+                                AppTheme.success,
+                              ),
+                              _buildStatColumn(
+                                'Win%',
+                                totalSpins > 0
+                                    ? '${((totalWins / totalSpins) * 100).toStringAsFixed(0)}%'
+                                    : '0%',
+                                AppTheme.primary,
+                              ),
+                            ],
                           ),
-                          borderRadius: BorderRadius.circular(12),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.3),
-                              blurRadius: 10,
-                              offset: const Offset(0, 4),
+
+                          const SizedBox(height: 20),
+
+                          // reels - 3 reels
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              vertical: 16,
+                              horizontal: 8,
                             ),
-                          ],
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                          children: reels
-                              .map(
-                                (s) => Container(
-                                  width: 70,
-                                  height: 80,
-                                  alignment: Alignment.center,
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    borderRadius: BorderRadius.circular(10),
-                                    border: Border.all(
-                                      color: AppTheme.accent,
-                                      width: 2,
-                                    ),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.black.withValues(alpha: 0.2),
-                                        blurRadius: 3,
-                                        offset: const Offset(0, 2),
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [
+                                  AppTheme.primary,
+                                  Colors.blue.shade900,
+                                ],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                              borderRadius: BorderRadius.circular(12),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.3),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                              children: reels
+                                  .map(
+                                    (s) => Container(
+                                      width: 70,
+                                      height: 80,
+                                      alignment: Alignment.center,
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        borderRadius: BorderRadius.circular(10),
+                                        border: Border.all(
+                                          color: AppTheme.accent,
+                                          width: 2,
+                                        ),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: Colors.black.withOpacity(
+                                              0.2,
+                                            ),
+                                            blurRadius: 3,
+                                            offset: const Offset(0, 2),
+                                          ),
+                                        ],
                                       ),
-                                    ],
-                                  ),
-                                  child: Text(
-                                    s,
-                                    style: const TextStyle(fontSize: 36),
+                                      child: Text(
+                                        s,
+                                        style: const TextStyle(fontSize: 36),
+                                      ),
+                                    ),
+                                  )
+                                  .toList(),
+                            ),
+                          ),
+
+                          const SizedBox(height: 20),
+
+                          // Bet amount selector
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: AppTheme.cardBg,
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                color: AppTheme.accent,
+                                width: 2,
+                              ),
+                            ),
+                            child: Column(
+                              children: [
+                                const Text(
+                                  'Inzet per spin',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppTheme.textDark,
                                   ),
                                 ),
-                              )
-                              .toList(),
-                        ),
-                      ),
+                                const SizedBox(height: 10),
+                                Wrap(
+                                  spacing: 6,
+                                  alignment: WrapAlignment.center,
+                                  children: [10, 25, 50, 100].map((amount) {
+                                    final isSelected = betAmount == amount;
+                                    return ElevatedButton(
+                                      onPressed: spinning
+                                          ? null
+                                          : () {
+                                              setState(
+                                                () => betAmount = amount,
+                                              );
+                                            },
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: isSelected
+                                            ? AppTheme.accent
+                                            : Colors.grey.shade300,
+                                        foregroundColor: isSelected
+                                            ? AppTheme.textDark
+                                            : Colors.black54,
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 16,
+                                          vertical: 10,
+                                        ),
+                                        elevation: isSelected ? 6 : 2,
+                                        minimumSize: const Size(60, 36),
+                                      ),
+                                      child: Text(
+                                        '$amount',
+                                        style: const TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    );
+                                  }).toList(),
+                                ),
+                              ],
+                            ),
+                          ),
 
-                      const SizedBox(height: 20),
+                          const SizedBox(height: 16),
 
-                      // Bet amount selector
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: AppTheme.cardBg,
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: AppTheme.accent, width: 2),
-                        ),
-                        child: Column(
-                          children: [
-                            const Text(
-                              'Inzet per spin',
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                                color: AppTheme.textDark,
+                          ElevatedButton(
+                            onPressed: spinning ? null : _spin,
+                            style: ElevatedButton.styleFrom(
+                              elevation: 8,
+                              shadowColor: Colors.black45,
+                              backgroundColor: AppTheme.accent,
+                              foregroundColor: AppTheme.textDark,
+                              padding: const EdgeInsets.symmetric(
+                                vertical: 16,
+                                horizontal: 40,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
                               ),
                             ),
-                            const SizedBox(height: 10),
-                            Wrap(
-                              spacing: 6,
-                              alignment: WrapAlignment.center,
-                              children: [10, 25, 50, 100].map((amount) {
-                                final isSelected = betAmount == amount;
-                                return ElevatedButton(
-                                  onPressed: spinning ? null : () {
-                                    setState(() => betAmount = amount);
-                                  },
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: isSelected ? AppTheme.accent : Colors.grey.shade300,
-                                    foregroundColor: isSelected ? AppTheme.textDark : Colors.black54,
-                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                                    elevation: isSelected ? 6 : 2,
-                                    minimumSize: const Size(60, 36),
-                                  ),
-                                  child: Text(
-                                    '$amount',
-                                    style: const TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                );
-                              }).toList(),
-                            ),
-                          ],
-                        ),
-                      ),
-
-                      const SizedBox(height: 16),
-
-                      ElevatedButton(
-                        onPressed: spinning ? null : _spin,
-                        style: ElevatedButton.styleFrom(
-                          elevation: 8,
-                          shadowColor: Colors.black45,
-                          backgroundColor: AppTheme.accent,
-                          foregroundColor: AppTheme.textDark,
-                          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 40),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        child: Text(
-                          spinning ? 'SPINNING...' : '🎰 SPIN 🎰',
-                          style: const TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: 1.5,
-                          ),
-                        ),
-                      ),
-                      
-                      const SizedBox(height: 16),
-                      
-                      // Paytable info
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [Colors.amber.shade100, Colors.yellow.shade50],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: AppTheme.accent, width: 2),
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppTheme.accent.withValues(alpha: 0.2),
-                              blurRadius: 6,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        child: Column(
-                          children: [
-                            const Text(
-                              '💰 UITBETALINGEN 💰',
-                              style: TextStyle(
-                                fontSize: 14,
+                            child: Text(
+                              spinning ? 'SPINNING...' : '🎰 SPIN 🎰',
+                              style: const TextStyle(
+                                fontSize: 20,
                                 fontWeight: FontWeight.w900,
-                                color: AppTheme.textDark,
-                                letterSpacing: 0.5,
+                                letterSpacing: 1.5,
                               ),
                             ),
-                            const Divider(thickness: 2, color: AppTheme.accent, height: 12),
-                            _buildPayoutRow('💎💎💎', betAmount * 50),
-                            _buildPayoutRow('7️⃣7️⃣7️⃣', betAmount * 25),
-                            _buildPayoutRow('🍒🍒🍒', betAmount * 10),
-                            _buildPayoutRow('🍋🍋', betAmount * 2),
-                          ],
-                        ),
-                      ),
+                          ),
+
+                          const SizedBox(height: 16),
+
+                          // Paytable info
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [
+                                  Colors.amber.shade100,
+                                  Colors.yellow.shade50,
+                                ],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                color: AppTheme.accent,
+                                width: 2,
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: AppTheme.accent.withOpacity(0.2),
+                                  blurRadius: 6,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: Column(
+                              children: [
+                                const Text(
+                                  '💰 UITBETALINGEN 💰',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w900,
+                                    color: AppTheme.textDark,
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
+                                const Divider(
+                                  thickness: 2,
+                                  color: AppTheme.accent,
+                                  height: 12,
+                                ),
+                                _buildPayoutRow('💎💎💎', betAmount * 50),
+                                _buildPayoutRow('7️⃣7️⃣7️⃣', betAmount * 25),
+                                _buildPayoutRow('🍒🍒🍒', betAmount * 10),
+                                _buildPayoutRow('🍋🍋', betAmount * 2),
+                              ],
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -470,13 +517,7 @@ class _SlotsScreenState extends State<SlotsScreen> {
   Widget _buildStatColumn(String label, String value, Color color) {
     return Column(
       children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 11,
-            color: Colors.grey,
-          ),
-        ),
+        Text(label, style: const TextStyle(fontSize: 11, color: Colors.grey)),
         Text(
           value,
           style: TextStyle(
