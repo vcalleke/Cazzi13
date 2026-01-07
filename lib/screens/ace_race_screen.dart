@@ -15,17 +15,18 @@ class AceRaceScreen extends StatefulWidget {
 }
 
 class _AceRaceScreenState extends State<AceRaceScreen> {
+  // deel een presentatie
   static const horses = ['⚡ White Lightning', '⚫ Blackthunder', '🌿 Green Blaze', '🔥 Pablo'];
-  static const finishLine = 35;
-  final Map<String, int> positions = {for (var h in horses) h: 0};
-  String? selectedHorse;
+  static const finishLine = 35; // afstand tot finish line
+  final Map<String, int> positions = {for (var h in horses) h: 0}; // start posities op 0 zetten
+  String? selectedHorse; 
   int bet = 10;
   int balance = 0;
   String _username = '';
   String message = '';
   String commentary = '';
-  bool racing = false;
-  final rng = Random();
+  bool racing = false; //zijn we aan het racen?
+  final rng = Random(); 
   DateTime? _lastCommentaryTime;
 
   @override
@@ -63,34 +64,34 @@ class _AceRaceScreenState extends State<AceRaceScreen> {
       setState(() => message = 'Niet genoeg chips! Je hebt $balance chips.');
       return;
     }
-
+//Deel 3 ---------------------------------------------------------------------------------------------------------------------------------
     // Trek inzet af aan het begin
     setState(() {
-      racing = true;
+      racing = true; //past status aan
       balance -= bet;
       _lastCommentaryTime = DateTime.now();
-      for (var h in horses) positions[h] = 0;
+      for (var h in horses) positions[h] = 0; // reset posities
       message = 'De race is begonnen!';
       commentary = '🏁 En ze zijn weg!';
     });
     
     await _saveBalance(); // Save immediately after deducting bet
 
-    // Race loop
+    // Race loop Deel 4 --------------------------------------------------------------------------------------------------------------------------------- 
     while (true) {
       await Future.delayed(const Duration(milliseconds: 1000));
       
-      bool hasWinner = false;
+      bool hasWinner = false; //checkt voor winnar
       
       setState(() {
         Map<String, int> moves = {};
         for (var h in horses) {
           final move = rng.nextInt(3) + 1;
           moves[h] = move;
-          positions[h] = (positions[h] ?? 0) + move;
+          positions[h] = (positions[h] ?? 0) + move; //doet voor elk horse een move 1-3 en update die positie
           
           if (positions[h]! >= finishLine) {
-            hasWinner = true;
+            hasWinner = true; //check for winner
           }
         }
         
@@ -98,7 +99,7 @@ class _AceRaceScreenState extends State<AceRaceScreen> {
         if (_lastCommentaryTime != null && 
             DateTime.now().difference(_lastCommentaryTime!).inMilliseconds >= 4500) {
           commentary = _generateCommentary(moves);
-          _lastCommentaryTime = DateTime.now();
+          _lastCommentaryTime = DateTime.now();  // als de tijd (4.5 sec) is verstreken, update commentaarS
         }
       });
 
@@ -106,12 +107,12 @@ class _AceRaceScreenState extends State<AceRaceScreen> {
         // Find winner (highest position)
         final winner = positions.entries.reduce((a, b) => a.value > b.value ? a : b).key;
         
-        final won = winner == selectedHorse;
+        final won = winner == selectedHorse; //true als speler heeft gewonnen
         setState(() {
           racing = false;
           if (won) {
             // Add winnings (bet was already deducted, so add total payout)
-            balance += bet * 5; // 5x because bet was already deducted, so net is 4x
+            balance += bet * 4; // 4x because bet was already deducted, so net is 4x 
           }
           // If lost, bet was already deducted, so do nothing
           message = won
@@ -395,6 +396,7 @@ class _AceRaceScreenState extends State<AceRaceScreen> {
                       ),
                 const SizedBox(height: 8),
                 Wrap(
+                  //Deel 2 uitleg pretensatie ---------------------------------------------------------------------------------------------
                   spacing: 8,
                   runSpacing: 8,
                   children: horses.map((h) {
@@ -402,11 +404,11 @@ class _AceRaceScreenState extends State<AceRaceScreen> {
                     return ChoiceChip(
                       label: Text(h),
                       selected: isSelected,
-                      labelStyle: const TextStyle(color: Colors.black),
+                      labelStyle: const TextStyle(color: Colors.black), 
                       selectedColor: AppTheme.accent,
                       backgroundColor: AppTheme.primary,
                       visualDensity: VisualDensity.compact,
-                      onSelected: racing ? null : (_) => setState(() => selectedHorse = h),
+                      onSelected: racing ? null : (_) => setState(() => selectedHorse = h), //zet een paard als geselecteerd
                     );
                   }).toList(),
                 ),
